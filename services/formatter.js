@@ -4,80 +4,38 @@ class MessageFormatter {
   formatCallReport(callData) {
     const lines = [];
     
-    // Estrai nome cliente dai highlights
+    // Estrai nome cliente
     const nameHighlight = (callData.highlights || []).find(h => h.startsWith('👤 Nome:'));
     const clientName = nameHighlight ? nameHighlight.replace('👤 Nome: ', '').trim() : null;
     
-    // Saluto personalizzato
+    // Saluto
     if (clientName) {
       lines.push(`Ciao ${clientName}! 👋`);
-      lines.push('Abbiamo appena ricevuto una chiamata, ecco il riepilogo:');
     } else {
       lines.push('Ciao! 👋');
-      lines.push('Abbiamo appena ricevuto una chiamata, ecco il riepilogo:');
     }
+    lines.push('Abbiamo appena ricevuto una chiamata.');
     lines.push('');
     
-    // Info chiamata
-    lines.push('📋 *Chiamata ricevuta*');
+    // Info base
+    lines.push(`📆 ${moment(callData.startTime).format('DD/MM/YYYY HH:mm')} • ⏱️ ${this._formatDuration(callData.duration)}`);
     if (callData.fromNumber && callData.fromNumber !== 'N/A') {
-      lines.push(`📞 Da: ${callData.fromNumber}`);
+      lines.push(`📞 ${callData.fromNumber}`);
     }
-    if (callData.toNumber && callData.toNumber !== 'N/A') {
-      lines.push(`📱 A: ${callData.toNumber}`);
-    }
-    lines.push(`📆 Data: ${moment(callData.startTime).format('DD/MM/YYYY HH:mm')}`);
-    lines.push(`⏱️ Durata: ${this._formatDuration(callData.duration)}`);
     lines.push('');
     
-    // Trascrizione conversazione
-    const transcript = this._cleanTranscript(callData.transcript, callData.transcriptObject);
-    if (transcript) {
-      lines.push('💬 *Conversazione*');
-      lines.push(transcript);
-      lines.push('');
-    }
-    
-    // Highlights estratti
-    if (callData.highlights && callData.highlights.length > 0 && callData.highlights[0] !== 'nessun punto saliente specifico rilevato') {
+    // Solo i punti chiave (nessun nome Giulia, solo info utili)
+    const keyPoints = this._getKeyPoints(callData);
+    if (keyPoints.length > 0) {
       lines.push('⭐ *Punti chiave*');
-      callData.highlights.forEach(h => {
-        lines.push(`• ${h}`);
-      });
+      keyPoints.forEach(p => lines.push(`• ${p}`));
       lines.push('');
     }
     
-    // Dati strutturati
-    if (callData.structuredData && Object.keys(callData.structuredData).length > 0) {
-      lines.push('📊 *Dati importanti*');
-      
-      if (callData.structuredData.numeroChiamante) {
-        lines.push(`📞 Numero: ${callData.structuredData.numeroChiamante}`);
-      }
-      if (callData.structuredData.tipoVeicolo) {
-        lines.push(`🚗 Veicolo: ${callData.structuredData.tipoVeicolo}`);
-      }
-      if (callData.structuredData.tipoRichiesta) {
-        lines.push(`📝 Richiesta: ${callData.structuredData.tipoRichiesta}`);
-      }
-      if (callData.structuredData.dateMenzionate) {
-        lines.push(`📅 Date: ${callData.structuredData.dateMenzionate.join(', ')}`);
-      }
-      if (callData.structuredData.importi) {
-        lines.push(`💰 Importi: ${callData.structuredData.importi.join(', ')}`);
-      }
-      if (callData.structuredData.altriTelefoni) {
-        lines.push(`☎️ Altri telefoni: ${callData.structuredData.altriTelefoni.join(', ')}`);
-      }
-      lines.push('');
-    }
-    
-    // Azioni suggerite
-    const actions = this._generateActionItems(callData);
-    if (actions) {
-      lines.push('✅ *Suggerimento*');
-      lines.push(actions);
-      lines.push('');
+    // Azione consigliata
+    const action = this._getAction(callData);
+    if (action) {
+      lines.push(action);
     }
     
     lines.push('Tua Giulia 💬');
@@ -86,37 +44,75 @@ class MessageFormatter {
   }
 
   /**
-   * Pulisce e formatta la trascrizione per il messaggio WhatsApp
+   * Estrae solo le informazioni importanti dalla chiamata
    */
-  _cleanTranscript(transcript, transcriptObject) {
-    let text = '';
+  _getKeyPoints(callData) {
+    const points = [];
+    const text = (callData.transcript || '').toLowerCase();
+    const sd = callData.structuredData || {};
     
-    if (typeof transcript === 'string' && transcript.length > 0) {
-      text = transcript;
-    } else if (Array.isArray(transcriptObject) && transcriptObject.length > 0) {
-      text = transcriptObject
-        .map(seg => {
-          const label = seg.role === 'agent' ? '🤖 Giulia' : '👤 Cliente';
-          return `${label}: ${seg.content}`;
-        })
-        .join('\n');
+    // Nome
+    const nameH = (callData.highlights || []).find(h => h.startsWith('👤 Nome:'));
+    if (nameH) points.push(nameH.replace('👤 Nome: ', '👤 Cliente: '));
+    
+    // Veicolo
+    if (sd.tipoVeicolo) {
+      points.push(`🚗 ${sd.tipoVeicolo}`);
     }
     
-    if (!text) return null;
-    
-    // Pulisci il testo: rimuovi timestamp, codici, e formatta
-    text = text
-      .replace(/\[\d{2}:\d{2}:\d{2}[.\d]*\s*→\s*\d{2}:\d{2}:\d{2}[.\d]*\]/g, '') // rimuovi timestamp
-      .replace(/^\s*[\d.]+\s+/gm, '') // rimuovi numeri all'inizio delle righe
-      .replace(/\n{3,}/g, '\n\n') // riduci righe vuote
-      .trim();
-    
-    // Tronca se troppo lungo (WhatsApp ha limiti)
-    if (text.length > 1500) {
-      text = text.substring(0, 1497) + '...';
+    // Tipo richiesta
+    if (sd.tipoRichiesta) {
+      points.push(`📝 ${sd.tipoRichiesta}`);
     }
     
-    return text;
+    // Targa
+    const targaH = (callData.highlights || []).find(h => h.startsWith('🚗 Targa:'));
+    if (targaH) points.push(`🔢 ${targaH.replace('🚗 Targa: ', 'Targa: ')}`);
+    
+    // Email
+    const emailH = (callData.highlights || []).find(h => h.startsWith('📧 Email:'));
+    if (emailH) points.push(`📧 ${emailH.replace('📧 Email: ', '')}`);
+    
+    // Polizza
+    const polizzaH = (callData.highlights || []).find(h => h.includes('Polizza'));
+    if (polizzaH && !polizzaH.includes('Discussione')) points.push(`📋 ${polizzaH.replace('📋 ', '')}`);
+    
+    // Importi
+    if (sd.importi && sd.importi.length > 0) {
+      points.push(`💰 ${sd.importi.join(', ')}`);
+    }
+    
+    // Date
+    if (sd.dateMenzionate && sd.dateMenzionate.length > 0) {
+      points.push(`📅 ${sd.dateMenzionate.join(', ')}`);
+    }
+    
+    // Sinistro
+    if (text.includes('sinistro') || text.includes('danno') || text.includes('incidente')) {
+      points.push('🚨 Segnalazione sinistro/danno');
+    }
+    
+    // Se non abbiamo nulla di utile, almeno mostriamo qualcosa
+    if (points.length === 0) {
+      points.push('Chiamata ricevuta, nessun dato specifico estratto');
+    }
+    
+    return points;
+  }
+
+  /**
+   * Genera un'azione concisa
+   */
+  _getAction(callData) {
+    const text = (callData.transcript || '').toLowerCase();
+    
+    if (text.includes('richiam') || text.includes('callback')) return '➡️ Da richiamare';
+    if (text.includes('email') || text.includes('mail')) return '➡️ Da inviare email';
+    if (text.includes('appuntamento')) return '➡️ Appuntamento da confermare';
+    if (text.includes('preventivo')) return '➡️ Da preparare preventivo';
+    if (text.includes('sinistro')) return '➡️ Sinistro da elaborare';
+    
+    return null;
   }
 
   _formatDuration(seconds) {
@@ -124,32 +120,6 @@ class MessageFormatter {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}m ${secs}s`;
-  }
-
-  _generateActionItems(callData) {
-    const actions = [];
-    const text = callData.transcript?.toLowerCase() || '';
-    
-    if (text.includes('richiam') || text.includes('callback')) {
-      actions.push('📞 Richiamare per confermare i dettagli');
-    }
-    if (text.includes('email') || text.includes('mail')) {
-      actions.push('📧 Inviare email con documenti');
-    }
-    if (text.includes('appuntamento') || text.includes('incontro')) {
-      actions.push('📅 Appuntamento da confermare');
-    }
-    if (text.includes('preventivo') || text.includes('quotazione')) {
-      actions.push('💰 Preparare preventivo');
-    }
-    if (text.includes('polizza') && (text.includes('rinnov') || text.includes('nuov'))) {
-      actions.push('📋 Elaborare polizza');
-    }
-    if (text.includes('sinistro') || text.includes('danno')) {
-      actions.push('🚨 Segnalazione sinistro presa in carico');
-    }
-    
-    return actions.length > 0 ? actions.join('\n') : null;
   }
 }
 
