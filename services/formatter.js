@@ -4,8 +4,18 @@ class MessageFormatter {
   formatCallReport(callData) {
     const lines = [];
     
-    lines.push('Ciao! 👋 Sono Giulia, assistente dello Studio Ascolesi.');
-    lines.push('Ho appena registrato una chiamata, ecco il riepilogo:');
+    // Estrai nome cliente dai highlights
+    const nameHighlight = (callData.highlights || []).find(h => h.startsWith('👤 Nome:'));
+    const clientName = nameHighlight ? nameHighlight.replace('👤 Nome: ', '').trim() : null;
+    
+    // Saluto personalizzato
+    if (clientName) {
+      lines.push(`Ciao ${clientName}! 👋`);
+      lines.push('Abbiamo appena ricevuto una chiamata, ecco il riepilogo:');
+    } else {
+      lines.push('Ciao! 👋');
+      lines.push('Abbiamo appena ricevuto una chiamata, ecco il riepilogo:');
+    }
     lines.push('');
     
     // Info chiamata
@@ -70,7 +80,7 @@ class MessageFormatter {
       lines.push('');
     }
     
-    lines.push('_Giulia | Studio Ascolesi_');
+    lines.push('Tua Giulia 💬');
     
     return lines.join('\n');
   }
@@ -96,7 +106,7 @@ class MessageFormatter {
     
     // Pulisci il testo: rimuovi timestamp, codici, e formatta
     text = text
-      .replace(/\[\d{2}:\d{2}:\d{2}[.\d]*\s*→\s*\d{2}:\d{2}:\d{2}[.\d]*\]/g, '') // rimuovi timestamp tipo [00:00:00 → 00:00:05]
+      .replace(/\[\d{2}:\d{2}:\d{2}[.\d]*\s*→\s*\d{2}:\d{2}:\d{2}[.\d]*\]/g, '') // rimuovi timestamp
       .replace(/^\s*[\d.]+\s+/gm, '') // rimuovi numeri all'inizio delle righe
       .replace(/\n{3,}/g, '\n\n') // riduci righe vuote
       .trim();
