@@ -474,6 +474,10 @@
             display: none;
         }
 
+        .qr-visual-row {
+            display: contents;
+        }
+
         /* ============================================
            RESPONSIVE — mobile
            ============================================ */
@@ -505,9 +509,8 @@
                 justify-content: center;
                 position: relative;
                 flex-shrink: 0;
-                width: 130px;
+                width: 120px;
                 overflow: hidden;
-                order: 3;
             }
 
             .giulia-mobile img {
@@ -527,25 +530,49 @@
                 100% { opacity: 1; transform: translateY(0); }
             }
 
-            .qr-container {
-                flex-direction: row;
+            /* QR + Giulia row */
+            .qr-visual-row {
+                display: flex;
                 align-items: flex-end;
+                justify-content: center;
                 gap: 20px;
+                margin-bottom: 36px;
+            }
+
+            .qr-container {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0;
             }
 
             .qr-inner img { width: 130px; height: 130px; }
 
-            .qr-details h3 { font-size: 17px; }
-            .qr-step-text { font-size: 12px; }
+            /* steps below */
+            .qr-details {
+                padding-top: 0;
+            }
+
+            .qr-details h3 {
+                font-size: 17px;
+                margin-bottom: 10px;
+                margin-top: 0;
+            }
+
+            .qr-step-text { font-size: 12.5px; }
+
+            .status {
+                margin-top: 16px;
+                padding-top: 16px;
+            }
         }
 
         @media (max-width: 480px) {
             .content { padding: 32px 20px 48px; }
             .title { font-size: 28px; }
 
-            .giulia-mobile { width: 110px; }
+            .giulia-mobile { width: 100px; }
 
-            .qr-container { gap: 14px; }
+            .qr-visual-row { gap: 14px; margin-bottom: 28px; }
             .qr-inner img { width: 110px; height: 110px; }
             .qr-step-num { width: 20px; height: 20px; font-size: 10px; }
             .qr-step-text { font-size: 11.5px; }
@@ -573,20 +600,24 @@
             <!-- QR State -->
             <div id="qr-state" class="qr-zone">
                 <div class="qr-container">
-                    <!-- Mobile Giulia (hidden on desktop) -->
-                    <div class="giulia-mobile">
-                        <img src="/giulia.png" alt="Giulia" />
-                    </div>
-
-                    <div class="qr-frame">
-                        <div class="qr-inner">
-                            <div class="qr-corner tl"></div>
-                            <div class="qr-corner tr"></div>
-                            <div class="qr-corner bl"></div>
-                            <div class="qr-corner br"></div>
-                            <img id="qr-image" src="" alt="QR Code" />
+                    <!-- QR + Giulia row (mobile) -->
+                    <div class="qr-visual-row">
+                        <div class="qr-frame">
+                            <div class="qr-inner">
+                                <div class="qr-corner tl"></div>
+                                <div class="qr-corner tr"></div>
+                                <div class="qr-corner bl"></div>
+                                <div class="qr-corner br"></div>
+                                <img id="qr-image" src="" alt="QR Code" />
+                            </div>
+                        </div>
+                        <!-- Mobile Giulia (hidden on desktop) -->
+                        <div class="giulia-mobile">
+                            <img src="/giulia.png" alt="Giulia" />
                         </div>
                     </div>
+
+                    <!-- Steps below -->
                     <div class="qr-details">
                         <h3>Collega in 3 passaggi</h3>
                         <div class="qr-step">
