@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.local
+.wwebjs_auth
+.git
+.DS_Store
+*.log
+.vscode
+.idea
