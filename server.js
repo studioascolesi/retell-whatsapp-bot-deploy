@@ -90,16 +90,12 @@ app.get('/qr', async (req, res) => {
 // Riceve notifiche quando una chiamata termina
 // ============================================
 app.post('/webhook/retell', async (req, res) => {
-  console.log('\n========================================');
-  console.log('📞 NUOVA CHIAMATA RICEVUTA DA RETELL AI');
-  console.log('========================================');
-  
   try {
     const payload = req.body;
-    console.log('📋 Payload ricevuto:', JSON.stringify(payload, null, 2));
-
-    // Verifica il tipo di evento
     const event = payload.event;
+    const callData = payload.call || payload.data || payload;
+    
+    console.log(`📋 Evento: ${event} | from: ${callData.from_number} | transcript: ${(callData.transcript||'').length}c | segments: ${(callData.transcript_object||[]).length}`);
     
     if (event === 'call_started') {
       console.log('▶️  Chiamata iniziata');
@@ -108,28 +104,18 @@ app.post('/webhook/retell', async (req, res) => {
     }
 
     if (event === 'call_ended') {
-      console.log('⏹️  Chiamata terminata - Elaborazione in corso in background...');
+      console.log('⏹️  Chiamata terminata');
       
       res.status(200).json({ 
         received: true,
         status: 'processing_in_background'
       });
       
-      const callData = payload.call;
       const callId = callData.call_id;
       
       console.log(`📞 Call ID: ${callId}`);
-      console.log(`👤 Persona: ${callData.from_number} → ${callData.to_number}`);
-      console.log(`📝 Transcript presente: ${!!callData.transcript}`);
-      console.log(`📝 Transcript_object presente: ${!!(callData.transcript_object && callData.transcript_object.length > 0)}`);
-      console.log(`📝 Lunghezza transcript: ${(callData.transcript || '').length}`);
-      console.log(`📝 Segmenti transcript_object: ${(callData.transcript_object || []).length}`);
-      
-      // Log primi 3 segmenti per debug
-      const segments = callData.transcript_object || [];
-      segments.slice(0, 3).forEach((seg, i) => {
-        console.log(`   [${i}] role=${seg.role} content="${(seg.content || '').substring(0, 80)}..."`);
-      });
+      console.log(`👤 Da: ${callData.from_number} → A: ${callData.to_number}`);
+      console.log(`📝 Transcript: ${(callData.transcript||'').length}c | Segments: ${(callData.transcript_object||[]).length}`);
 
       (async () => {
         try {
