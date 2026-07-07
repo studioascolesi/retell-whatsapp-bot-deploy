@@ -73,16 +73,39 @@ class RetellService {
   }
 
   /**
-   * Estrae i punti salienti dalla trascrizione
+   * Estrae solo il testo del cliente (User) da transcript_object
    */
-  _extractHighlights(transcript, callType, fromNumber) {
+  _getUserText(transcriptObject) {
+    if (!transcriptObject || !Array.isArray(transcriptObject)) return '';
+    return transcriptObject
+      .filter(seg => seg.role === 'user')
+      .map(seg => seg.content)
+      .join(' ');
+  }
+
+  /**
+   * Estrae solo il testo dell'agente (Agent) da transcript_object
+   */
+  _getAgentText(transcriptObject) {
+    if (!transcriptObject || !Array.isArray(transcriptObject)) return '';
+    return transcriptObject
+      .filter(seg => seg.role === 'agent')
+      .map(seg => seg.content)
+      .join(' ');
+  }
+
+  /**
+   * Estrae i punti salienti dalla trascrizione.
+   * Usa transcript_object per separare i messaggi del cliente da quelli dell'agente.
+   */
+  _extractHighlights(transcript, callType, fromNumber, transcriptObject) {
     if (!transcript) return [];
     
     const highlights = [];
-    const text = transcript.toLowerCase();
+    const userText = this._getUserText(transcriptObject).toLowerCase();
+    const fullText = transcript.toLowerCase();
     
-    // ── CHI CHIAMA ──
-    // Nome del chiamante
+    // ── CHI CHIAMA (solo da messaggi del cliente) ──
     const namePatterns = [
       /(?:mi chiamo|sono il signor[ao]?|sono la signor[ao]?|sono avv?oc[ao]t[oa]?|parla|il mio nome è|a parlar[et] è|chi parla\?\s*sono|qui con (?:me|lui|lei))\s+([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i,
       /(?:sono)\s+([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i,
@@ -90,10 +113,9 @@ class RetellService {
     ];
     
     for (const pattern of namePatterns) {
-      const match = transcript.match(pattern);
+      const match = userText.match(pattern);
       if (match) {
         const name = (match[1] || match[0]).trim();
-        // Evita falsi positivi
         if (!['il', 'la', 'le', 'lo', 'un', 'una', 'che', 'come', 'cosa', 'dove', 'quando', 'perché', 'bene', 'male'].includes(name.toLowerCase())) {
           highlights.push(`👤 Nome: ${name}`);
           break;
@@ -101,8 +123,8 @@ class RetellService {
       }
     }
     
-    // Ruolo (avvocato, cliente, ecc.)
-    if (text.includes('avvocat') || text.includes('avv. ') || text.includes('legale')) {
+    // Ruolo (avvocato, cliente, ecc.) - solo da userText
+    if (userText.includes('avvocat') || userText.includes('avv. ') || userText.includes('legale') || userText.includes('giudice')) {
       highlights.push('⚖️ Ruolo: Avvocato/Legale');
     }
     
@@ -112,106 +134,96 @@ class RetellService {
       highlights.push(`📞 Telefono: ${formatted}`);
     }
     
-    // Email
-    const emailMatch = transcript.match(/[\w.-]+@[\w.-]+\.\w+/);
+    // Email - solo da userText
+    const emailMatch = userText.match(/[\w.-]+@[\w.-]+\.\w+/);
     if (emailMatch) highlights.push(`📧 Email: ${emailMatch[0]}`);
     
-    // Codice fiscale
-    const cfMatch = transcript.match(/\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b/);
+    // Codice fiscale - solo da userText
+    const cfMatch = userText.match(/\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b/);
     if (cfMatch) highlights.push(`🪪 CF: ${cfMatch[0]}`);
     
-    // ── VEICOLO ──
+    // ── VEICOLO (da fullText) ──
     const targaMatch = transcript.match(/\b[A-Z]{2}\d{3}[A-Z]{2}\b/);
     if (targaMatch) highlights.push(`🔢 Targa: ${targaMatch[0]}`);
     
-    if (text.includes('barca') || text.includes('imbarcazione') || text.includes('motore fuoribordo')) {
+    if (fullText.includes('barca') || fullText.includes('imbarcazione') || fullText.includes('motore fuoribordo')) {
       highlights.push('⛵ Veicolo: Barca');
-    } else if (text.includes('moto') || text.includes('motoveicolo')) {
+    } else if (fullText.includes('moto') || fullText.includes('motoveicolo')) {
       highlights.push('🏍️ Veicolo: Moto');
-    } else if (text.includes('auto') || text.includes('automobile') || text.includes('macchina')) {
+    } else if (fullText.includes('auto') || fullText.includes('automobile') || fullText.includes('macchina')) {
       highlights.push('🚗 Veicolo: Auto');
     }
     
-    // ── TIPO RICHIESTA ──
-    // Sinistro / Danno
-    if (text.includes('sinistro') || text.includes('danno') || text.includes('incidente')) {
-      if (text.includes('perizia')) {
+    // ── TIPO RICHIESTA (da userText) ──
+    if (userText.includes('sinistro') || userText.includes('danno') || userText.includes('incidente')) {
+      if (userText.includes('perizia')) {
         highlights.push('🔍 Sinistro + richiesta perizia');
       } else {
         highlights.push('🚨 Segnalazione sinistro/danno');
       }
     }
     
-    // Perizia (anche senza sinistro)
-    if (text.includes('perizia') || text.includes('perito') || text.includes('sopralluogo')) {
+    if (userText.includes('perizia') || userText.includes('perito') || userText.includes('sopralluogo')) {
       if (!highlights.some(h => h.includes('perizia'))) {
         highlights.push('🔍 Richiesta perizia');
       }
     }
     
-    // Causa / Tribunale
-    if (text.includes('causa') || text.includes('tribunale') || text.includes('udienza') || text.includes('sentenza') || text.includes('giudice')) {
+    if (userText.includes('causa') || userText.includes('tribunale') || userText.includes('udienza') || userText.includes('sentenza') || userText.includes('giudice')) {
       highlights.push('⚖️ Causa legale');
     }
     
-    // Documenti
-    if (text.includes('document') || text.includes('integrazione') || text.includes('manca') || text.includes('mancante')) {
+    if (userText.includes('document') || userText.includes('integrazione') || userText.includes('manca') || userText.includes('mancante')) {
       highlights.push('📄 Documentazione richiesta');
     }
     
-    // Testimoni
-    if (text.includes('testimone') || text.includes('testimonial') || text.includes('dichiarazion')) {
+    if (userText.includes('testimone') || userText.includes('testimonial') || userText.includes('dichiarazion')) {
       highlights.push('👤 Menziona testimoni');
     }
     
-    // Polizza
-    if (text.includes('polizza')) {
-      if (text.includes('rinnovo') || text.includes('rinnovare')) {
+    if (userText.includes('polizza')) {
+      if (userText.includes('rinnovo') || userText.includes('rinnovare')) {
         highlights.push('🔄 Rinnovo polizza');
       } else {
         highlights.push('📋 Discussione polizza');
       }
     }
     
-    // Preventivo / Costo
-    if (text.includes('preventivo') || text.includes('quotazione') || text.includes('costo') || text.includes('prezzo')) {
+    if (userText.includes('preventivo') || userText.includes('quotazione') || userText.includes('costo') || userText.includes('prezzo')) {
       highlights.push('💰 Preventivo/costo');
     }
     
-    // Risarcimento / Pagamento
-    if (text.includes('risarciment') || text.includes('pagamento') || text.includes('liquidazion')) {
+    if (userText.includes('risarciment') || userText.includes('pagamento') || userText.includes('liquidazion')) {
       highlights.push('💰 Risarcimento/pagamento');
     }
     
-    // Appuntamento
-    if (text.includes('appuntamento') || text.includes('incontro') || text.includes('passare')) {
+    if (userText.includes('appuntamento') || userText.includes('incontro') || userText.includes('passare')) {
       highlights.push('📅 Richiesta appuntamento');
     }
     
-    // Richiamare
-    if (text.includes('richiam') || text.includes('callback')) {
+    if (userText.includes('richiam') || userText.includes('callback')) {
       highlights.push('📞 Richiamare il cliente');
     }
     
-    // Numero pratica
-    const praticaMatch = transcript.match(/(?:pratica|numero pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]*)/i);
+    // Numero pratica - solo da userText, solo numeri
+    const praticaMatch = userText.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\d+)/i);
     if (praticaMatch) highlights.push(`📂 Pratica: ${praticaMatch[1]}`);
     
-    // Numero sinistro
-    const sinistroMatch = transcript.match(/(?:sinistro|numero sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]*)/i);
+    // Numero sinistro - solo da userText, solo numeri
+    const sinistroMatch = userText.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\d+)/i);
     if (sinistroMatch) highlights.push(`🚨 Sinistro: ${sinistroMatch[1]}`);
     
-    // Compagnia assicurativa
+    // Compagnia assicurativa - solo da userText
     const compagnie = ['general', 'assitalia', 'axa', 'allianz', 'unipol', 'zagame', 'convergenze', 'bper', 'intesa', 'sai', 'vittoria', 'groupama', 'terna', 'cattolica', 'poste', 'arca', 'helvetia', 'quixa', 'sara'];
     for (const c of compagnie) {
-      if (text.includes(c.toLowerCase())) {
+      if (userText.includes(c.toLowerCase())) {
         highlights.push(`🏢 Compagnia: ${c}`);
         break;
       }
     }
     
-    // Avvocato
-    const avvocatoMatch = transcript.match(/(?:avv[oc]*\.?\s+|avvocat[oa]?\s+)([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i);
+    // Avvocato - solo da userText
+    const avvocatoMatch = userText.match(/(?:avv[oc]*\.?\s+|avvocat[oa]?\s+)([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i);
     if (avvocatoMatch) highlights.push(`⚖️ Avvocato: ${avvocatoMatch[0].trim()}`);
     
     return highlights.length > 0 ? highlights : ['📞 Chiamata ricevuta'];
@@ -308,14 +320,17 @@ class RetellService {
   }
 
   /**
-   * Parsa i dati della chiamata dal payload del webhook (già presente nel body)
+   * Parsa i dati della chiamata dal payload del webhook
+   * Il webhook wrappa i dati in `call` object (payload.call)
    */
   parseWebhookData(data) {
     const transcriptObject = data.transcript_object || [];
     const transcript = data.transcript || this._buildTranscriptFromObject(transcriptObject);
-    const duration = data.call_duration_ms ? Math.round(data.call_duration_ms / 1000) 
+    const duration = data.duration_ms ? Math.round(data.duration_ms / 1000) 
+                    : data.call_duration_ms ? Math.round(data.call_duration_ms / 1000)
                     : data.duration || 0;
     const fromNumber = data.from_number || 'N/A';
+    const callAnalysis = data.call_analysis || null;
     
     return {
       callId: data.call_id,
@@ -328,8 +343,10 @@ class RetellService {
       status: data.call_status,
       transcript: transcript,
       disconnectionReason: data.disconnection_reason,
-      sentiment: this._analyzeSentiment(transcript),
-      highlights: this._extractHighlights(transcript, data.call_type, fromNumber),
+      sentiment: callAnalysis?.user_sentiment || this._analyzeSentiment(transcript),
+      callSummary: callAnalysis?.call_summary || null,
+      callSuccessful: callAnalysis?.call_successful ?? null,
+      highlights: this._extractHighlights(transcript, data.call_type, fromNumber, transcriptObject),
       structuredData: this._extractStructuredData(transcript, fromNumber),
       recordingUrl: data.recording_url,
       transcriptObject: transcriptObject

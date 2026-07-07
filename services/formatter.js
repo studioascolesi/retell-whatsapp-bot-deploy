@@ -5,12 +5,12 @@ class MessageFormatter {
     const lines = [];
     const text = (callData.transcript || '').toLowerCase();
     
-    // Chi chiama
-    const nameH = (callData.highlights || []).find(h => h.startsWith('👤 Nome:'));
-    const callerName = nameH ? nameH.replace('👤 Nome: ', '').trim() : null;
-    
     // Saluto sempre a Massimo
     lines.push('Ciao Massimo! 👋');
+    
+    // Caller name from highlights
+    const nameH = (callData.highlights || []).find(h => h.startsWith('Nome:'));
+    const callerName = nameH ? nameH.replace('Nome: ', '').trim() : null;
     
     if (callerName) {
       lines.push(`Ho appena ricevuto una chiamata da *${callerName}*.`);
@@ -27,6 +27,13 @@ class MessageFormatter {
       lines.push(`📞 ${callData.fromNumber}`);
     }
     lines.push('');
+    
+    // Retell AI summary (if available) — much richer than regex extraction
+    if (callData.callSummary) {
+      lines.push('📋 *Riepilogo chiamata:*');
+      lines.push(callData.callSummary);
+      lines.push('');
+    }
     
     // Cosa chiede il cliente
     const richiesta = this._getRichiesta(text, callData);
@@ -157,12 +164,12 @@ class MessageFormatter {
     }
     
     // Email
-    const emailH = (callData.highlights || []).find(h => h.startsWith('📧 Email:'));
-    if (emailH) dettagli.push(`📧 ${emailH.replace('📧 Email: ', '')}`);
+    const emailH = (callData.highlights || []).find(h => h.startsWith('Email:'));
+    if (emailH) dettagli.push(`📧 ${emailH.replace('Email: ', '')}`);
     
     // Polizza
     const polizzaH = (callData.highlights || []).find(h => h.includes('Polizza') && !h.includes('Discussione'));
-    if (polizzaH) dettagli.push(`📋 ${polizzaH.replace('📋 ', '')}`);
+    if (polizzaH) dettagli.push(`📋 ${polizzaH.replace('Polizza: ', '').trim()}`);
     
     // Date
     if (sd.dateMenzionate && sd.dateMenzionate.length > 0) {

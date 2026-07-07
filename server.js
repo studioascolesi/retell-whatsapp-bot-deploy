@@ -148,12 +148,26 @@ app.post('/webhook/retell', async (req, res) => {
           const recipient = process.env.WHATSAPP_RECIPIENT;
           await whatsappService.sendMessage(recipient, message);
           
-          console.log('✅ Elaborazione webhook completata con successo!');
-          console.log('========================================\n');
+          console.log('✅ Messaggio WhatsApp inviato con successo!');
         } catch (bgError) {
           console.error('❌ Errore durante l\'elaborazione in background:', bgError.message);
         }
       })();
+      
+      return;
+    }
+
+    if (event === 'call_analyzed') {
+      console.log('📊 Chiamata analizzata (call_analyzed)');
+      
+      res.status(200).json({ received: true });
+      
+      const callAnalysis = callData.call_analysis;
+      if (callAnalysis?.call_summary) {
+        console.log(`📝 Summary: ${callAnalysis.call_summary.substring(0, 100)}...`);
+        console.log(`💬 Sentiment: ${callAnalysis.user_sentiment}`);
+        console.log(`✅ Successful: ${callAnalysis.call_successful}`);
+      }
       
       return;
     }
