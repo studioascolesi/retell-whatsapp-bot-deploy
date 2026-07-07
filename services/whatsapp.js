@@ -13,12 +13,23 @@ class WhatsAppService {
     this.isReady = false;
     this.currentQr = null;
     this.sock = null;
-    this.authDir = path.join(__dirname, '..', 'auth_info');
     
-    // Crea la directory auth se non esiste
+    // Railway: usa volume persistente /data/auth_info
+    // Locale: usa auth_info nella root del progetto
+    const railwayDataDir = '/data/auth_info';
+    const localDataDir = path.join(__dirname, '..', 'auth_info');
+    
+    if (fs.existsSync('/data')) {
+      this.authDir = railwayDataDir;
+      console.log('💾 Using persistent volume: /data/auth_info');
+    } else {
+      this.authDir = localDataDir;
+      console.log('📁 Using local auth_info');
+    }
+    
     if (!fs.existsSync(this.authDir)) {
       fs.mkdirSync(this.authDir, { recursive: true });
-      console.log('📁 Directory auth creata');
+      console.log(`📁 Directory auth creata: ${this.authDir}`);
     }
     
     this._init();
