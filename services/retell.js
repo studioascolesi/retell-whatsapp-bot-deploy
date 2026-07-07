@@ -75,15 +75,33 @@ class RetellService {
   /**
    * Estrae i punti salienti dalla trascrizione
    */
-  _extractHighlights(transcript, callType) {
+  _extractHighlights(transcript, callType, fromNumber) {
     if (!transcript) return [];
     
     const highlights = [];
     const text = transcript.toLowerCase();
     
-    // Nomi e contatti
-    const nameMatch = transcript.match(/(?:mi chiamo|sono|qui con me|parla)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
-    if (nameMatch) highlights.push(`👤 Nome: ${nameMatch[1]}`);
+    // Nome del chiamante (più pattern)
+    const namePatterns = [
+      /(?:mi chiamo|sono|qui con me|parla|il mio nome è|a parlar(e|ti) è|chi parla\?* sono)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+      /(?:sono)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+      /(?:parl[ao]|chi è\?*|di chi parlo\?*)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+    ];
+    
+    for (const pattern of namePatterns) {
+      const match = transcript.match(pattern);
+      if (match) {
+        const name = match[1] || match[0];
+        highlights.push(`👤 Nome: ${name.trim()}`);
+        break;
+      }
+    }
+    
+    // Numero del chiamante
+    if (fromNumber && fromNumber !== 'N/A') {
+      const formatted = fromNumber.replace(/^\+/, '').replace(/(\d{2})(\d{3})(\d{3})(\d{4})/, '+$1 $2 $3 $4');
+      highlights.push(`📞 Telefono: ${formatted}`);
+    }
     
     // Email
     const emailMatch = transcript.match(/[\w.-]+@[\w.-]+\.\w+/);
@@ -147,11 +165,17 @@ class RetellService {
   /**
    * Analizza i dati estratti dalla chiamata
    */
-  _extractStructuredData(transcript) {
+  _extractStructuredData(transcript, fromNumber) {
     if (!transcript) return {};
     
     const data = {};
     const text = transcript.toLowerCase();
+    
+    // Numero del chiamante (sempre presente)
+    if (fromNumber && fromNumber !== 'N/A') {
+      const formatted = fromNumber.replace(/^\+/, '').replace(/(\d{2})(\d{3})(\d{3})(\d{4})/, '+$1 $2 $3 $4');
+      data.numeroChiamante = formatted;
+    }
     
     // Estrai tipo veicolo
     if (text.includes('auto') || text.includes('automobile')) data.tipoVeicolo = 'Auto';
@@ -175,10 +199,18 @@ class RetellService {
     const amounts = transcript.match(amountRegex);
     if (amounts) data.importi = amounts;
     
-    // Cerca numeri di telefono
+    // Cerca altri numeri di telefono nel transcript (diversi dal chiamante)
     const phoneRegex = /(?:\+39|0039|39)?\s*\d{3}\s*\d{3}\s*\d{4}/g;
     const phones = transcript.match(phoneRegex);
-    if (phones) data.telefoni = phones;
+    if (phones) {
+      // Filtra il numero del chiamante se presente
+      const cleanFrom = fromNumber?.replace(/\D/g, '') || '';
+      const otherPhones = phones.filter(p => {
+        const clean = p.replace(/\D/g, '');
+        return clean !== cleanFrom && !cleanFrom.endsWith(clean) && !clean.endsWith(cleanFrom.slice(-10));
+      });
+      if (otherPhones.length > 0) data.altriTelefoni = otherPhones;
+    }
     
     return data;
   }
@@ -190,6 +222,7 @@ class RetellService {
     const transcript = data.transcript || '';
     const duration = data.call_duration_ms ? Math.round(data.call_duration_ms / 1000) 
                     : data.duration || 0;
+    const fromNumber = data.from_number || 'N/A';
     
     return {
       callId: data.call_id,
@@ -197,14 +230,14 @@ class RetellService {
       startTime: data.start_timestamp ? new Date(data.start_timestamp) : new Date(),
       endTime: data.end_timestamp ? new Date(data.end_timestamp) : new Date(),
       duration: duration,
-      fromNumber: data.from_number || 'N/A',
+      fromNumber: fromNumber,
       toNumber: data.to_number || 'N/A',
       status: data.call_status,
       transcript: transcript,
       disconnectionReason: data.disconnection_reason,
       sentiment: this._analyzeSentiment(transcript),
-      highlights: this._extractHighlights(transcript, data.call_type),
-      structuredData: this._extractStructuredData(transcript),
+      highlights: this._extractHighlights(transcript, data.call_type, fromNumber),
+      structuredData: this._extractStructuredData(transcript, fromNumber),
       recordingUrl: data.recording_url,
       transcriptObject: data.transcript_object || []
     };
@@ -216,6 +249,7 @@ class RetellService {
   _parseCallData(data) {
     const transcript = data.transcript || '';
     const duration = data.call_duration_ms ? Math.round(data.call_duration_ms / 1000) : 0;
+    const fromNumber = data.from_number || 'N/A';
     
     return {
       callId: data.call_id,
@@ -223,14 +257,14 @@ class RetellService {
       startTime: data.start_timestamp ? new Date(data.start_timestamp) : new Date(),
       endTime: data.end_timestamp ? new Date(data.end_timestamp) : new Date(),
       duration: duration,
-      fromNumber: data.from_number || 'N/A',
+      fromNumber: fromNumber,
       toNumber: data.to_number || 'N/A',
       status: data.call_status,
       transcript: transcript,
       disconnectionReason: data.disconnection_reason,
       sentiment: this._analyzeSentiment(transcript),
-      highlights: this._extractHighlights(transcript, data.call_type),
-      structuredData: this._extractStructuredData(transcript),
+      highlights: this._extractHighlights(transcript, data.call_type, fromNumber),
+      structuredData: this._extractStructuredData(transcript, fromNumber),
       recordingUrl: data.recording_url,
       transcriptObject: data.transcript_object || []
     };

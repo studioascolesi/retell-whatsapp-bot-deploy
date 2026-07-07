@@ -8,7 +8,7 @@ class MessageFormatter {
     lines.push('Ho appena registrato la chiamata, ecco il riepilogo:');
     lines.push('');
     
-    lines.push('📋 *Chi ha chiamato*');
+    lines.push('📋 *Chiamata ricevuta*');
     lines.push(`📞 Da: ${callData.fromNumber}`);
     lines.push(`📱 A: ${callData.toNumber}`);
     lines.push(`📆 Data: ${moment(callData.startTime).format('DD/MM/YYYY HH:mm')}`);
@@ -26,6 +26,9 @@ class MessageFormatter {
     if (callData.structuredData && Object.keys(callData.structuredData).length > 0) {
       lines.push('📊 *Dati importanti*');
       
+      if (callData.structuredData.numeroChiamante) {
+        lines.push(`📞 Numero chiamante: ${callData.structuredData.numeroChiamante}`);
+      }
       if (callData.structuredData.tipoVeicolo) {
         lines.push(`🚗 Veicolo: ${callData.structuredData.tipoVeicolo}`);
       }
@@ -38,8 +41,8 @@ class MessageFormatter {
       if (callData.structuredData.importi) {
         lines.push(`💰 Importi: ${callData.structuredData.importi.join(', ')}`);
       }
-      if (callData.structuredData.telefoni) {
-        lines.push(`☎️ Telefoni: ${callData.structuredData.telefoni.join(', ')}`);
+      if (callData.structuredData.altriTelefoni) {
+        lines.push(`☎️ Altri telefoni: ${callData.structuredData.altriTelefoni.join(', ')}`);
       }
       lines.push('');
     }
