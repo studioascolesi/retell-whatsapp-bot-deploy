@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const moment = require('moment');
 const { RetellService } = require('./services/retell');
 const { WhatsAppService } = require('./services/whatsapp');
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Servizi
 const retellService = new RetellService();
@@ -40,66 +42,29 @@ app.get('/status', (req, res) => {
 
 // ============================================
 // SETUP WHATSAPP WEB
-// Pagina web per scansionare il QR code
+// Pagina premium per scansionare il QR code
 // ============================================
-app.get('/setup', async (req, res) => {
+app.get('/setup', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'setup.html'));
+});
+
+// QR code come JSON (per polling AJAX)
+app.get('/qr', async (req, res) => {
   try {
     const status = whatsappService.getQrCode();
     
     if (status.isReady) {
-      return res.send(`
-        <html>
-          <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px;">
-            <h1 style="color: #4CAF50;">✅ WhatsApp è già connesso!</h1>
-            <p>Il bot è pronto per inviare messaggi automaticamente. Non c'è bisogno di scansionare il QR code di nuovo.</p>
-          </body>
-        </html>
-      `);
+      return res.json({ connected: true, qr: null });
     }
 
     if (!status.qr) {
-      return res.send(`
-        <html>
-          <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px;">
-            <h1>⏳ Caricamento...</h1>
-            <p>Il bot si sta avviando o sta recuperando il QR code. Ricarica la pagina tra qualche secondo.</p>
-            <script>setTimeout(() => window.location.reload(), 5000);</script>
-          </body>
-        </html>
-      `);
+      return res.json({ connected: false, qr: null });
     }
 
     const qrImage = await qrcode.toDataURL(status.qr);
-    
-    res.send(`
-      <html>
-        <head>
-          <title>Collega WhatsApp</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-        </head>
-        <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f0f2f5;">
-          <div style="background: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="color: #075E54; margin-top: 0;">Collega il tuo WhatsApp</h2>
-            <p>1. Apri WhatsApp sul tuo telefono</p>
-            <p>2. Vai su <b>Impostazioni > Dispositivi collegati</b></p>
-            <p>3. Inquadra questo QR Code:</p>
-            <img src="${qrImage}" style="width: 250px; height: 250px; border: 1px solid #ccc; padding: 10px; border-radius: 10px;" />
-            <p style="color: #888; font-size: 12px; margin-top: 20px;">Questa pagina si aggiornerà automaticamente dopo la scansione.</p>
-          </div>
-          <script>
-            setInterval(() => {
-              fetch('/status').then(r => r.json()).then(data => {
-                if (data.whatsapp.connected) {
-                  window.location.reload();
-                }
-              });
-            }, 3000);
-          </script>
-        </body>
-      </html>
-    `);
+    res.json({ connected: false, qr: qrImage });
   } catch (err) {
-    res.status(500).send('Errore durante la generazione della pagina di setup: ' + err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
