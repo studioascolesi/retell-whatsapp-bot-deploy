@@ -1,6 +1,7 @@
 FROM node:20-slim
 
 # Installa Chrome/Chromium + dipendenze di sistema per Puppeteer
+# NOTA: NON installare libdbus-1-3 - Chromium ci prova a connettersi e fallisce
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-ipafont-gothic \
@@ -13,7 +14,6 @@ RUN apt-get update && apt-get install -y \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
     libcups2 \
-    libdbus-1-3 \
     libdrm2 \
     libgbm1 \
     libgtk-3-0 \
