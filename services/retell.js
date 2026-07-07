@@ -252,7 +252,7 @@ class RetellService {
     
     return transcriptObject
       .map(seg => {
-        const role = seg.role === 'agent' ? 'Bot' : 'Cliente';
+        const role = seg.role === 'agent' ? 'Giulia' : 'Cliente';
         return `${role}: ${seg.content}`;
       })
       .join('\n');

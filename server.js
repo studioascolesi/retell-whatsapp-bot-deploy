@@ -110,8 +110,9 @@ app.post('/webhook/retell', async (req, res) => {
       event: event,
       from: callData?.from_number,
       to: callData?.to_number,
-      hasTranscript: !!(callData?.transcript),
+      hasTranscript: !!(callData?.transcript || callData?.transcript_object),
       transcriptLen: (callData?.transcript || '').length,
+      transcriptPreview: (callData?.transcript || '').substring(0, 100),
       segments: (callData?.transcript_object || []).length,
       keys: Object.keys(callData || {}).join(',')
     });
