@@ -18,9 +18,13 @@ class WhatsAppService {
           '--no-first-run',
           '--no-zygote',
           '--disable-gpu',
+          '--disable-software-rasterizer',
+          '--disable-extensions',
+          '--single-process',
           '--disable-features=dbus'
         ],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium'
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+        headless: true
       }
     });
 
