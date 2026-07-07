@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Asclesi — Collega WhatsApp</title>
+    <title>Studio Ascolesi — Collega WhatsApp</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
@@ -13,7 +13,6 @@
         :root {
             --bg: #0a0a0c;
             --surface: #111114;
-            --surface-elevated: #18181c;
             --border: rgba(255,255,255,0.06);
             --text-primary: #f0ede8;
             --text-secondary: #8a8680;
@@ -25,58 +24,101 @@
             --radius-sm: 12px;
         }
 
+        html { scroll-behavior: smooth; }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg);
             color: var(--text-primary);
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 40px 24px 60px;
-            -webkit-font-smoothing: antialiased;
             overflow-y: auto;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Ambient glow */
-        body::before {
+        /* ============================================
+           DESKTOP / TABLET LAYOUT
+           ============================================ */
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Left panel — Giulia */
+        .panel-image {
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            background: linear-gradient(180deg, #0d0d10 0%, #111115 100%);
+            overflow: hidden;
+            opacity: 0;
+            animation: fade-in 1s ease-out 0.2s forwards;
+        }
+
+        .panel-image::before {
             content: '';
-            position: fixed;
-            top: -40%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 800px;
-            height: 800px;
-            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            position: absolute;
+            top: -20%;
+            left: -20%;
+            width: 140%;
+            height: 140%;
+            background: radial-gradient(circle at 50% 60%, var(--accent-glow) 0%, transparent 50%);
             pointer-events: none;
-            z-index: 0;
-            animation: pulse-glow 6s ease-in-out infinite alternate;
+            animation: pulse-glow 8s ease-in-out infinite alternate;
         }
 
         @keyframes pulse-glow {
-            0% { opacity: 0.4; transform: translateX(-50%) scale(1); }
-            100% { opacity: 0.7; transform: translateX(-50%) scale(1.1); }
+            0% { opacity: 0.3; transform: scale(1); }
+            100% { opacity: 0.6; transform: scale(1.05); }
         }
 
-        .container {
+        .panel-image img {
             position: relative;
             z-index: 1;
             width: 100%;
-            max-width: 420px;
+            max-width: 520px;
+            height: auto;
+            object-fit: contain;
+            object-position: bottom;
+            filter: drop-shadow(0 20px 60px rgba(0,0,0,0.5));
+            animation: giulia-enter 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+        }
+
+        @keyframes giulia-enter {
+            0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Right panel — QR + instructions */
+        .panel-qr {
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            padding: 60px 48px;
+            position: relative;
         }
 
-        /* Logo / Brand */
+        .panel-qr::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 1px;
+            background: linear-gradient(180deg, transparent, var(--border), transparent);
+        }
+
+        /* Brand */
         .brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             margin-bottom: 48px;
             opacity: 0;
-            animation: fade-in 0.8s ease-out 0.2s forwards;
+            animation: fade-in 0.8s ease-out 0.3s forwards;
         }
 
         .brand-icon {
@@ -96,13 +138,12 @@
             font-size: 22px;
             font-weight: 500;
             letter-spacing: -0.02em;
-            color: var(--text-primary);
         }
 
         .brand-tag {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-tertiary);
-            letter-spacing: 0.08em;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
             font-weight: 500;
         }
@@ -110,16 +151,16 @@
         /* Headline */
         .headline {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 36px;
             opacity: 0;
-            animation: fade-in 0.8s ease-out 0.4s forwards;
+            animation: fade-in 0.8s ease-out 0.5s forwards;
         }
 
         .headline h1 {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 600;
             letter-spacing: -0.03em;
-            line-height: 1.2;
+            line-height: 1.15;
             margin-bottom: 12px;
         }
 
@@ -127,7 +168,7 @@
             font-size: 15px;
             color: var(--text-secondary);
             line-height: 1.6;
-            max-width: 300px;
+            max-width: 320px;
             margin: 0 auto;
         }
 
@@ -136,15 +177,16 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 40px 36px;
+            padding: 36px 32px;
             width: 100%;
+            max-width: 380px;
             display: flex;
             flex-direction: column;
             align-items: center;
             position: relative;
             overflow: hidden;
             opacity: 0;
-            animation: fade-in 0.8s ease-out 0.6s forwards;
+            animation: fade-in 0.8s ease-out 0.7s forwards;
         }
 
         .qr-card::before {
@@ -162,15 +204,15 @@
             background: #ffffff;
             border-radius: var(--radius-sm);
             padding: 20px;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
             position: relative;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
 
         .qr-wrapper img {
             display: block;
-            width: 200px;
-            height: 200px;
+            width: 180px;
+            height: 180px;
             border-radius: 8px;
         }
 
@@ -194,7 +236,6 @@
             gap: 8px;
             font-size: 13px;
             color: var(--text-secondary);
-            margin-bottom: 4px;
         }
 
         .scan-hint .dot {
@@ -213,9 +254,10 @@
         /* Steps */
         .steps {
             width: 100%;
+            max-width: 380px;
             margin-top: 32px;
             opacity: 0;
-            animation: fade-in 0.8s ease-out 0.8s forwards;
+            animation: fade-in 0.8s ease-out 0.9s forwards;
         }
 
         .step {
@@ -292,6 +334,7 @@
             color: var(--text-secondary);
             text-align: center;
             line-height: 1.6;
+            max-width: 300px;
         }
 
         /* Loading state */
@@ -323,9 +366,10 @@
 
         /* Footer */
         .footer {
-            margin-top: 48px;
+            margin-top: auto;
+            padding-top: 40px;
             opacity: 0;
-            animation: fade-in 0.8s ease-out 1s forwards;
+            animation: fade-in 0.8s ease-out 1.1s forwards;
         }
 
         .footer p {
@@ -340,76 +384,131 @@
             100% { opacity: 1; transform: translateY(0); }
         }
 
-        /* Responsive */
+        /* ============================================
+           MOBILE LAYOUT
+           ============================================ */
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+
+            .panel-image {
+                min-height: 320px;
+                max-height: 420px;
+                padding-top: 40px;
+            }
+
+            .panel-image img {
+                max-width: 280px;
+            }
+
+            .panel-qr {
+                padding: 40px 24px 60px;
+            }
+
+            .panel-qr::before {
+                display: none;
+            }
+
+            .headline h1 { font-size: 26px; }
+            .qr-card { padding: 28px 24px; }
+        }
+
         @media (max-width: 480px) {
-            body { padding: 16px; }
-            .qr-card { padding: 32px 24px; }
-            .headline h1 { font-size: 24px; }
+            .panel-image {
+                min-height: 260px;
+                max-height: 340px;
+            }
+
+            .panel-image img {
+                max-width: 220px;
+            }
+
+            .panel-qr {
+                padding: 32px 20px 48px;
+            }
+
+            .brand { margin-bottom: 32px; }
+            .headline { margin-bottom: 28px; }
+            .headline h1 { font-size: 22px; }
+            .headline p { font-size: 14px; }
+            .qr-wrapper img { width: 160px; height: 160px; }
+            .qr-card { padding: 24px 20px; }
+            .steps { margin-top: 24px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="brand">
-            <div class="brand-icon">✦</div>
-            <div>
-                <div class="brand-name">Studio Ascolesi</div>
-                <div class="brand-tag">Assistente Virtuale</div>
-            </div>
+    <div class="layout">
+        <!-- Left: Giulia -->
+        <div class="panel-image">
+            <img src="/giulia.png" alt="Giulia — Assistente Virtuale" />
         </div>
 
-        <!-- QR State -->
-        <div id="qr-state">
-            <div class="headline">
-                <h1>Collega WhatsApp</h1>
-                <p>Scansiona il codice con la fotocamera del tuo telefono per attivare l'assistente</p>
-            </div>
-
-            <div class="qr-card">
-                <div class="qr-wrapper">
-                    <div class="qr-corner tl"></div>
-                    <div class="qr-corner tr"></div>
-                    <div class="qr-corner bl"></div>
-                    <div class="qr-corner br"></div>
-                    <img id="qr-image" src="" alt="QR Code WhatsApp" />
-                </div>
-                <div class="scan-hint">
-                    <span class="dot"></span>
-                    In attesa di scansione
+        <!-- Right: QR + Instructions -->
+        <div class="panel-qr">
+            <div class="brand">
+                <div class="brand-icon">✦</div>
+                <div>
+                    <div class="brand-name">Studio Ascolesi</div>
+                    <div class="brand-tag">Assistente Virtuale</div>
                 </div>
             </div>
 
-            <div class="steps">
-                <div class="step">
-                    <div class="step-num">1</div>
-                    <div class="step-text">Apri <strong>WhatsApp</strong> sul telefono</div>
+            <!-- QR State -->
+            <div id="qr-state">
+                <div class="headline">
+                    <h1>Collega WhatsApp</h1>
+                    <p>Scansiona il codice con la fotocamera del tuo telefono per attivare l'assistente</p>
                 </div>
-                <div class="step">
-                    <div class="step-num">2</div>
-                    <div class="step-text">Vai su <strong>Impostazioni → Dispositivi collegati</strong></div>
+
+                <div class="qr-card">
+                    <div class="qr-wrapper">
+                        <div class="qr-corner tl"></div>
+                        <div class="qr-corner tr"></div>
+                        <div class="qr-corner bl"></div>
+                        <div class="qr-corner br"></div>
+                        <img id="qr-image" src="" alt="QR Code WhatsApp" />
+                    </div>
+                    <div class="scan-hint">
+                        <span class="dot"></span>
+                        In attesa di scansione
+                    </div>
                 </div>
-                <div class="step">
-                    <div class="step-num">3</div>
-                    <div class="step-text">Tocca <strong>Collega dispositivo</strong> e inquadra il codice</div>
+
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-text">Apri <strong>WhatsApp</strong> sul telefono</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-text">Vai su <strong>Impostazioni → Dispositivi collegati</strong></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-text">Tocca <strong>Collega dispositivo</strong> e inquadra il codice</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Connected State -->
-        <div id="connected-state" class="connected">
-            <div class="connected-icon">✓</div>
-            <h2>Collegato</h2>
-            <p>WhatsApp è connesso. L'assistente è attivo e pronto a ricevere le notifiche delle chiamate.</p>
-        </div>
+            <!-- Connected State -->
+            <div id="connected-state" class="connected">
+                <div class="connected-icon">✓</div>
+                <h2>Collegato</h2>
+                <p>WhatsApp è connesso. Giulia è attiva e pronta a ricevere le notifiche delle chiamate.</p>
+            </div>
 
-        <!-- Loading State -->
-        <div id="loading-state" class="loading">
-            <div class="spinner"></div>
-            <p>Generazione codice QR...</p>
-        </div>
+            <!-- Loading State -->
+            <div id="loading-state" class="loading">
+                <div class="spinner"></div>
+                <p>Generazione codice QR...</p>
+            </div>
 
-        <div class="footer">
-            <p>Studio Ascolesi · Assistente Virtuale</p>
+            <div class="footer">
+                <p>Studio Ascolesi · Assistente Virtuale</p>
+            </div>
         </div>
     </div>
 
@@ -453,7 +552,6 @@
                 }
 
                 if (data.whatsapp.hasQr) {
-                    // QR is available, fetch it
                     const qrRes = await fetch('/qr');
                     const qrData = await qrRes.json();
                     if (qrData.qr) {
@@ -468,10 +566,8 @@
             return false;
         }
 
-        // Initial check
         checkStatus();
 
-        // Poll every 3s, stop when connected
         setInterval(async () => {
             if (!connected) await checkStatus();
         }, 3000);
