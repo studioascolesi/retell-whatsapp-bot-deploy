@@ -89,13 +89,35 @@ app.get('/qr', async (req, res) => {
 // WEBHOOK RETELL AI
 // Riceve notifiche quando una chiamata termina
 // ============================================
+
+// Log ultimi webhook ricevuti (per debug)
+const webhookLog = [];
+const MAX_LOG = 20;
+
+app.get('/webhook/log', (req, res) => {
+  res.json(webhookLog);
+});
+
 app.post('/webhook/retell', async (req, res) => {
   try {
     const payload = req.body;
     const event = payload.event;
     const callData = payload.call || payload.data || payload;
     
-    console.log(`📋 Evento: ${event} | from: ${callData.from_number} | transcript: ${(callData.transcript||'').length}c | segments: ${(callData.transcript_object||[]).length}`);
+    // Salva nel log
+    webhookLog.unshift({
+      time: new Date().toISOString(),
+      event: event,
+      from: callData?.from_number,
+      to: callData?.to_number,
+      hasTranscript: !!(callData?.transcript),
+      transcriptLen: (callData?.transcript || '').length,
+      segments: (callData?.transcript_object || []).length,
+      keys: Object.keys(callData || {}).join(',')
+    });
+    if (webhookLog.length > MAX_LOG) webhookLog.length = MAX_LOG;
+    
+    console.log(`📋 ${event} | from: ${callData?.from_number} | transcript: ${(callData?.transcript||'').length}c | segs: ${(callData?.transcript_object||[]).length}`);
     
     if (event === 'call_started') {
       console.log('▶️  Chiamata iniziata');
