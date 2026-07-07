@@ -20,8 +20,11 @@ class WhatsAppService {
           '--disable-gpu',
           '--disable-software-rasterizer',
           '--disable-extensions',
-          '--single-process',
-          '--disable-features=dbus'
+          '--disable-features=dbus',
+          '--disable-background-networking',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding'
         ],
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
         headless: true
