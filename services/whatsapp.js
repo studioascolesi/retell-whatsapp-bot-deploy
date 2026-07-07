@@ -1,38 +1,34 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
+let chromium;
+try {
+  chromium = require('@sparticuz/chromium');
+} catch (e) {
+  // Fallback locale - non serve su Render
+  chromium = null;
+}
+
 class WhatsAppService {
   constructor() {
     console.log('⏳ Inizializzazione WhatsApp Client in corso...');
     
+    this.isReady = false;
+    this.currentQr = null;
+    this.client = null;
+    
+    this._init();
+  }
+
+  async _init() {
+    const puppeteerConfig = await this._getPuppeteerConfig();
+    
     this.client = new Client({
       authStrategy: new LocalAuth({
-        clientId: "retell-bot" // Nome della sessione
+        clientId: "retell-bot"
       }),
-      puppeteer: {
-        args: [
-          '--no-sandbox', 
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu',
-          '--disable-software-rasterizer',
-          '--disable-extensions',
-          '--disable-features=dbus',
-          '--disable-background-networking',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
-        ],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-        headless: true
-      }
+      puppeteer: puppeteerConfig
     });
-
-    this.isReady = false;
-    this.currentQr = null; // Memorizza l'ultimo QR code generato
 
     this.client.on('qr', (qr) => {
       this.currentQr = qr;
@@ -45,7 +41,7 @@ class WhatsAppService {
 
     this.client.on('ready', () => {
       this.isReady = true;
-      this.currentQr = null; // Svuota il QR code una volta connesso
+      this.currentQr = null;
       console.log('✅ WhatsApp Web Client è pronto e connesso!');
     });
 
@@ -61,14 +57,37 @@ class WhatsAppService {
       this.isReady = false;
       console.log('❌ WhatsApp disconnesso:', reason);
     });
-    
-    // Inizializza il client per generare il QR o riprendere la sessione
+
     this.client.initialize();
   }
 
-  /**
-   * Ottieni lo stato e l'eventuale QR code del client
-   */
+  async _getPuppeteerConfig() {
+    // Su Render / serverless usa @sparticuz/chromium
+    if (chromium) {
+      const execPath = await chromium.executablePath();
+      return {
+        args: chromium.args,
+        executablePath: execPath,
+        headless: chromium.headless,
+      };
+    }
+
+    // Fallback locale
+    return {
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu'
+      ],
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      headless: true,
+    };
+  }
+
   getQrCode() {
     return {
       isReady: this.isReady,
@@ -76,22 +95,17 @@ class WhatsAppService {
     };
   }
 
-  /**
-   * Invia un messaggio WhatsApp
-   */
   async sendMessage(recipient, message) {
     if (!this.isReady) {
-      console.warn('⚠️ Il client WhatsApp non è ancora pronto. Impossibile inviare il messaggio ora.');
+      console.warn('⚠️ Il client WhatsApp non è ancora pronto.');
       throw new Error('Client WhatsApp non pronto');
     }
     
     try {
       console.log(`📱 Invio messaggio WhatsApp a: ${recipient}`);
       
-      // Formatta il numero (rimuovi + iniziale se presente e spazi)
       let formattedRecipient = recipient.replace(/^\+/, '').replace(/\s+/g, '');
       
-      // whatsapp-web.js richiede il suffisso @c.us per i numeri normali
       if (!formattedRecipient.endsWith('@c.us')) {
         formattedRecipient = `${formattedRecipient}@c.us`;
       }
@@ -108,9 +122,6 @@ class WhatsAppService {
     }
   }
 
-  /**
-   * Invia un messaggio con formattazione
-   */
   async sendFormattedMessage(recipient, message) {
     return this.sendMessage(recipient, message);
   }

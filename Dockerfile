@@ -1,9 +1,7 @@
 FROM node:20-slim
 
-# Installa Chrome/Chromium + dipendenze di sistema per Puppeteer
-# NOTA: NON installare libdbus-1-3 - Chromium ci prova a connettersi e fallisce
+# Installa solo le dipendenze di sistema minime per Chromium
 RUN apt-get update && apt-get install -y \
-    chromium \
     fonts-ipafont-gothic \
     fonts-wqy-zenhei \
     fonts-thai-tlwg \
@@ -27,9 +25,8 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Imposta variabile per Puppeteer
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+# @sparticuz/chromium scarica il proprio binario - non serve chromium di sistema
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false
 ENV NODE_ENV=production
 
 WORKDIR /app
