@@ -28,6 +28,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/status', (req, res) => {
+  const waStatus = whatsappService.getQrCode();
+  res.json({
+    whatsapp: {
+      connected: waStatus.isReady,
+      hasQr: !!waStatus.qr
+    }
+  });
+});
+
 // ============================================
 // SETUP WHATSAPP WEB
 // Pagina web per scansionare il QR code
@@ -77,12 +87,13 @@ app.get('/setup', async (req, res) => {
             <p style="color: #888; font-size: 12px; margin-top: 20px;">Questa pagina si aggiornerà automaticamente dopo la scansione.</p>
           </div>
           <script>
-            // Polling per ricaricare se si connette
             setInterval(() => {
-              fetch('/health').then(() => {
-                // Non fa nulla per ora, ma si potrebbe fare un polling all'endpoint setup per vedere lo stato
+              fetch('/status').then(r => r.json()).then(data => {
+                if (data.whatsapp.connected) {
+                  window.location.reload();
+                }
               });
-            }, 5000);
+            }, 3000);
           </script>
         </body>
       </html>

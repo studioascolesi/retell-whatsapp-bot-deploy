@@ -1,7 +1,7 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const qrcode = require('qrcode-terminal');
 const path = require('path');
+const fs = require('fs');
 
 const logger = pino({ level: 'silent' });
 
@@ -14,53 +14,77 @@ class WhatsAppService {
     this.sock = null;
     this.authDir = path.join(__dirname, '..', 'auth_info');
     
+    // Crea la directory auth se non esiste
+    if (!fs.existsSync(this.authDir)) {
+      fs.mkdirSync(this.authDir, { recursive: true });
+      console.log('📁 Directory auth creata');
+    }
+    
     this._init();
   }
 
   async _init() {
-    const { state, saveCreds } = await useMultiFileAuthState(this.authDir);
-    const { version } = await fetchLatestBaileysVersion();
+    try {
+      const { state, saveCreds } = await useMultiFileAuthState(this.authDir);
+      const { version } = await fetchLatestBaileysVersion();
 
-    this.sock = makeWASocket({
-      version,
-      auth: state,
-      browser: ['Retell WhatsApp Bot', 'Chrome', '4.0.0'],
-      logger
-    });
+      console.log(`🔗 Baileys versione: ${version.join('.')}`);
 
-    this.sock.ev.on('connection.update', (update) => {
-      const { connection, lastDisconnect, qr } = update;
-      
-      if (qr) {
-        this.currentQr = qr;
-        console.log('\n========================================');
-        console.log('📱 SCANSIONA QUESTO QR CODE CON WHATSAPP');
-        console.log('========================================\n');
-        qrcode.generate(qr, { small: true });
-        console.log('Attendendo la scansione per completare il login...');
-      }
+      this.sock = makeWASocket({
+        version,
+        auth: state,
+        browser: ['Retell WhatsApp Bot', 'Chrome', '4.0.0'],
+        logger,
+        connectTimeout: 60000,
+        keepAliveInterval: 30000,
+        markOnlineOnConnect: true
+      });
 
-      if (connection === 'close') {
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-        console.log(`❌ Connessione chiusa. Motivo: ${statusCode}. Riconnessione: ${shouldReconnect}`);
+      this.sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect, qr } = update;
         
-        if (shouldReconnect) {
-          setTimeout(() => this._init(), 3000);
-        } else {
-          this.isReady = false;
-          console.log('❌ Disconnesso definitivamente. Riscansiona il QR.');
+        console.log(`🔄 Connection update: ${JSON.stringify({ connection, hasQr: !!qr, disconnectReason: lastDisconnect?.error?.output?.statusCode })}`);
+
+        if (qr) {
+          this.currentQr = qr;
+          console.log('\n========================================');
+          console.log('📱 SCANSIONA QUESTO QR CODE CON WHATSAPP');
+          console.log('========================================\n');
+          qrcode.generate(qr, { small: true });
         }
-      }
 
-      if (connection === 'open') {
-        this.isReady = true;
-        this.currentQr = null;
-        console.log('✅ WhatsApp Web Client è pronto e connesso!');
-      }
-    });
+        if (connection === 'close') {
+          const statusCode = lastDisconnect?.error?.output?.statusCode;
+          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          console.log(`❌ Connessione chiusa. StatusCode: ${statusCode}. Riconnessione: ${shouldReconnect}`);
+          
+          this.isReady = false;
+          
+          if (shouldReconnect) {
+            console.log('🔄 Riconnessione tra 3 secondi...');
+            setTimeout(() => this._init(), 3000);
+          } else {
+            console.log('❌ Disconnesso definitivamente. Riscansiona il QR.');
+            this.currentQr = null;
+          }
+        }
 
-    this.sock.ev.on('creds.update', saveCreds);
+        if (connection === 'open') {
+          this.isReady = true;
+          this.currentQr = null;
+          console.log('✅ WhatsApp connesso e pronto!');
+        }
+      });
+
+      this.sock.ev.on('creds.update', (creds) => {
+        saveCreds(creds);
+        console.log('💾 Credenziali salvate');
+      });
+
+    } catch (error) {
+      console.error('❌ Errore inizializzazione:', error.message);
+      setTimeout(() => this._init(), 5000);
+    }
   }
 
   getQrCode() {
