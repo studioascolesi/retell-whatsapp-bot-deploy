@@ -1,6 +1,8 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
-const qrcode = require('qrcode-terminal');
+const pino = require('pino');
 const path = require('path');
+
+const logger = pino({ level: 'silent' });
 
 class WhatsAppService {
   constructor() {
@@ -21,9 +23,8 @@ class WhatsAppService {
     this.sock = makeWASocket({
       version,
       auth: state,
-      printQRInTerminal: true,
       browser: ['Retell WhatsApp Bot', 'Chrome', '4.0.0'],
-      logger: { level: 'silent' }
+      logger
     });
 
     this.sock.ev.on('connection.update', (update) => {
