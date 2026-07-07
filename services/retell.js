@@ -219,7 +219,8 @@ class RetellService {
    * Parsa i dati della chiamata dal payload del webhook (già presente nel body)
    */
   parseWebhookData(data) {
-    const transcript = data.transcript || '';
+    const transcriptObject = data.transcript_object || [];
+    const transcript = data.transcript || this._buildTranscriptFromObject(transcriptObject);
     const duration = data.call_duration_ms ? Math.round(data.call_duration_ms / 1000) 
                     : data.duration || 0;
     const fromNumber = data.from_number || 'N/A';
@@ -239,15 +240,30 @@ class RetellService {
       highlights: this._extractHighlights(transcript, data.call_type, fromNumber),
       structuredData: this._extractStructuredData(transcript, fromNumber),
       recordingUrl: data.recording_url,
-      transcriptObject: data.transcript_object || []
+      transcriptObject: transcriptObject
     };
+  }
+
+  /**
+   * Costruisce il testo del transcript da transcript_object (array di segmenti)
+   */
+  _buildTranscriptFromObject(transcriptObject) {
+    if (!transcriptObject || transcriptObject.length === 0) return '';
+    
+    return transcriptObject
+      .map(seg => {
+        const role = seg.role === 'agent' ? 'Bot' : 'Cliente';
+        return `${role}: ${seg.content}`;
+      })
+      .join('\n');
   }
 
   /**
    * Parsa i dati della chiamata dal formato Retell API
    */
   _parseCallData(data) {
-    const transcript = data.transcript || '';
+    const transcriptObject = data.transcript_object || [];
+    const transcript = data.transcript || this._buildTranscriptFromObject(transcriptObject);
     const duration = data.call_duration_ms ? Math.round(data.call_duration_ms / 1000) : 0;
     const fromNumber = data.from_number || 'N/A';
     
@@ -266,7 +282,7 @@ class RetellService {
       highlights: this._extractHighlights(transcript, data.call_type, fromNumber),
       structuredData: this._extractStructuredData(transcript, fromNumber),
       recordingUrl: data.recording_url,
-      transcriptObject: data.transcript_object || []
+      transcriptObject: transcriptObject
     };
   }
 }

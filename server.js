@@ -120,6 +120,16 @@ app.post('/webhook/retell', async (req, res) => {
       
       console.log(`📞 Call ID: ${callId}`);
       console.log(`👤 Persona: ${callData.from_number} → ${callData.to_number}`);
+      console.log(`📝 Transcript presente: ${!!callData.transcript}`);
+      console.log(`📝 Transcript_object presente: ${!!(callData.transcript_object && callData.transcript_object.length > 0)}`);
+      console.log(`📝 Lunghezza transcript: ${(callData.transcript || '').length}`);
+      console.log(`📝 Segmenti transcript_object: ${(callData.transcript_object || []).length}`);
+      
+      // Log primi 3 segmenti per debug
+      const segments = callData.transcript_object || [];
+      segments.slice(0, 3).forEach((seg, i) => {
+        console.log(`   [${i}] role=${seg.role} content="${(seg.content || '').substring(0, 80)}..."`);
+      });
 
       (async () => {
         try {
