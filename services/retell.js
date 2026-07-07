@@ -144,7 +144,34 @@ class RetellService {
   }
 
   /**
-   * Parsa i dati della chiamata dal formato Retell
+   * Parsa i dati della chiamata dal payload del webhook (già presente nel body)
+   */
+  parseWebhookData(data) {
+    const transcript = data.transcript || '';
+    const duration = data.call_duration_ms ? Math.round(data.call_duration_ms / 1000) 
+                    : data.duration || 0;
+    
+    return {
+      callId: data.call_id,
+      agentId: data.agent_id,
+      startTime: data.start_timestamp ? new Date(data.start_timestamp) : new Date(),
+      endTime: data.end_timestamp ? new Date(data.end_timestamp) : new Date(),
+      duration: duration,
+      fromNumber: data.from_number || 'N/A',
+      toNumber: data.to_number || 'N/A',
+      status: data.call_status,
+      transcript: transcript,
+      disconnectionReason: data.disconnection_reason,
+      sentiment: this._analyzeSentiment(transcript),
+      highlights: this._extractHighlights(transcript, data.call_type),
+      structuredData: this._extractStructuredData(transcript),
+      recordingUrl: data.recording_url,
+      transcriptObject: data.transcript_object || []
+    };
+  }
+
+  /**
+   * Parsa i dati della chiamata dal formato Retell API
    */
   _parseCallData(data) {
     const transcript = data.transcript || '';

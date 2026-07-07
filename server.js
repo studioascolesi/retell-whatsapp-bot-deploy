@@ -117,7 +117,6 @@ app.post('/webhook/retell', async (req, res) => {
     if (event === 'call_ended') {
       console.log('⏹️  Chiamata terminata - Elaborazione in corso in background...');
       
-      // RISPOSTA IMMEDIATA 200 (Fix Timeout Risk)
       res.status(200).json({ 
         received: true,
         status: 'processing_in_background'
@@ -128,18 +127,12 @@ app.post('/webhook/retell', async (req, res) => {
       
       console.log(`📞 Call ID: ${callId}`);
       console.log(`👤 Persona: ${callData.from_number} → ${callData.to_number}`);
-      console.log(`⏱️  Durata: ${callData.duration} secondi`);
 
-      // Elaborazione in background
       (async () => {
         try {
-          // Recupera dettagli completi della chiamata da Retell
-          const callDetails = await retellService.getCallDetails(callId);
-          
-          // Formatta il messaggio WhatsApp
+          const callDetails = retellService.parseWebhookData(callData);
           const message = formatter.formatCallReport(callDetails);
           
-          // Invia su WhatsApp
           const recipient = process.env.WHATSAPP_RECIPIENT;
           await whatsappService.sendMessage(recipient, message);
           
