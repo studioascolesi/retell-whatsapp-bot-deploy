@@ -33,82 +33,72 @@
             min-height: 100vh;
             overflow-y: auto;
             -webkit-font-smoothing: antialiased;
+            position: relative;
         }
 
         /* ============================================
-           DESKTOP / TABLET LAYOUT
+           GIULIA OVERLAY (desktop / tablet)
            ============================================ */
-        .layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            min-height: 100vh;
-            position: relative;
-        }
-
-        /* Left panel — Giulia */
-        .panel-image {
-            position: relative;
+        .giulia-overlay {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            background: linear-gradient(180deg, #0d0d10 0%, #111115 100%);
-            overflow: hidden;
-            opacity: 0;
-            animation: fade-in 1s ease-out 0.2s forwards;
         }
 
-        .panel-image::before {
+        .giulia-overlay::before {
             content: '';
             position: absolute;
-            top: -20%;
-            left: -20%;
-            width: 140%;
-            height: 140%;
-            background: radial-gradient(circle at 50% 60%, var(--accent-glow) 0%, transparent 50%);
+            bottom: -10%;
+            left: -30%;
+            width: 160%;
+            height: 80%;
+            background: radial-gradient(ellipse at 50% 100%, var(--accent-glow) 0%, transparent 60%);
             pointer-events: none;
             animation: pulse-glow 8s ease-in-out infinite alternate;
         }
 
         @keyframes pulse-glow {
             0% { opacity: 0.3; transform: scale(1); }
-            100% { opacity: 0.6; transform: scale(1.05); }
+            100% { opacity: 0.5; transform: scale(1.05); }
         }
 
-        .panel-image img {
+        .giulia-overlay img {
             position: relative;
             z-index: 1;
-            width: 100%;
-            max-width: 520px;
-            height: auto;
+            height: 72vh;
+            max-height: 680px;
+            width: auto;
+            max-width: 50vw;
             object-fit: contain;
             object-position: bottom;
-            filter: drop-shadow(0 20px 60px rgba(0,0,0,0.5));
-            animation: giulia-enter 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+            filter: drop-shadow(0 -10px 60px rgba(0,0,0,0.6));
+            opacity: 0;
+            animation: giulia-enter 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
         }
 
         @keyframes giulia-enter {
-            0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+            0% { opacity: 0; transform: translateY(60px) scale(0.95); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Right panel — QR + instructions */
-        .panel-qr {
+        /* ============================================
+           MAIN CONTENT (centered, single column)
+           ============================================ */
+        .content {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 80px 32px 100px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 60px 48px;
             position: relative;
-        }
-
-        .panel-qr::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 1px;
-            background: linear-gradient(180deg, transparent, var(--border), transparent);
+            z-index: 5;
         }
 
         /* Brand */
@@ -385,130 +375,142 @@
         }
 
         /* ============================================
-           MOBILE LAYOUT
+           TABLET
            ============================================ */
-        @media (max-width: 900px) {
-            .layout {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto 1fr;
+        @media (max-width: 1024px) {
+            .giulia-overlay img {
+                height: 65vh;
+                max-height: 560px;
             }
-
-            .panel-image {
-                min-height: 320px;
-                max-height: 420px;
-                padding-top: 40px;
-            }
-
-            .panel-image img {
-                max-width: 280px;
-            }
-
-            .panel-qr {
-                padding: 40px 24px 60px;
-            }
-
-            .panel-qr::before {
-                display: none;
-            }
-
-            .headline h1 { font-size: 26px; }
-            .qr-card { padding: 28px 24px; }
         }
 
-        @media (max-width: 480px) {
-            .panel-image {
-                min-height: 260px;
-                max-height: 340px;
+        /* ============================================
+           MOBILE
+           ============================================ */
+        @media (max-width: 600px) {
+            .giulia-overlay {
+                position: fixed;
+                bottom: auto;
+                top: 0;
+                left: 0;
+                right: 0;
+                transform: none;
+                justify-content: center;
+                overflow: hidden;
+                height: 260px;
             }
 
-            .panel-image img {
-                max-width: 220px;
+            .giulia-overlay::before {
+                bottom: -30%;
+                height: 100%;
+                background: radial-gradient(ellipse at 50% 80%, var(--accent-glow) 0%, transparent 60%);
             }
 
-            .panel-qr {
-                padding: 32px 20px 48px;
+            .giulia-overlay img {
+                height: 260px;
+                width: auto;
+                max-width: 80vw;
+                object-position: top center;
+                filter: drop-shadow(0 10px 40px rgba(0,0,0,0.6));
+                animation-name: giulia-enter-mobile;
+            }
+
+            @keyframes giulia-enter-mobile {
+                0% { opacity: 0; transform: translateY(-40px) scale(0.95); }
+                100% { opacity: 1; transform: translateY(0) scale(1); }
+            }
+
+            .content {
+                padding: 280px 24px 80px;
             }
 
             .brand { margin-bottom: 32px; }
             .headline { margin-bottom: 28px; }
-            .headline h1 { font-size: 22px; }
+            .headline h1 { font-size: 26px; }
             .headline p { font-size: 14px; }
             .qr-wrapper img { width: 160px; height: 160px; }
-            .qr-card { padding: 24px 20px; }
+            .qr-card { padding: 28px 24px; }
             .steps { margin-top: 24px; }
+        }
+
+        @media (max-width: 380px) {
+            .giulia-overlay { height: 220px; }
+            .giulia-overlay img { height: 220px; }
+            .content { padding-top: 240px; }
+            .headline h1 { font-size: 22px; }
+            .qr-wrapper img { width: 140px; height: 140px; }
+            .qr-card { padding: 24px 20px; }
         }
     </style>
 </head>
 <body>
-    <div class="layout">
-        <!-- Left: Giulia -->
-        <div class="panel-image">
-            <img src="/giulia.png" alt="Giulia — Assistente Virtuale" />
+    <!-- Giulia: overlaid on top of content -->
+    <div class="giulia-overlay">
+        <img src="/giulia.png" alt="Giulia — Assistente Virtuale" />
+    </div>
+
+    <!-- Main content: single centered column -->
+    <div class="content">
+        <div class="brand">
+            <div class="brand-icon">✦</div>
+            <div>
+                <div class="brand-name">Studio Ascolesi</div>
+                <div class="brand-tag">Assistente Virtuale</div>
+            </div>
         </div>
 
-        <!-- Right: QR + Instructions -->
-        <div class="panel-qr">
-            <div class="brand">
-                <div class="brand-icon">✦</div>
-                <div>
-                    <div class="brand-name">Studio Ascolesi</div>
-                    <div class="brand-tag">Assistente Virtuale</div>
+        <!-- QR State -->
+        <div id="qr-state">
+            <div class="headline">
+                <h1>Collega WhatsApp</h1>
+                <p>Scansiona il codice con la fotocamera del tuo telefono per attivare l'assistente</p>
+            </div>
+
+            <div class="qr-card">
+                <div class="qr-wrapper">
+                    <div class="qr-corner tl"></div>
+                    <div class="qr-corner tr"></div>
+                    <div class="qr-corner bl"></div>
+                    <div class="qr-corner br"></div>
+                    <img id="qr-image" src="" alt="QR Code WhatsApp" />
+                </div>
+                <div class="scan-hint">
+                    <span class="dot"></span>
+                    In attesa di scansione
                 </div>
             </div>
 
-            <!-- QR State -->
-            <div id="qr-state">
-                <div class="headline">
-                    <h1>Collega WhatsApp</h1>
-                    <p>Scansiona il codice con la fotocamera del tuo telefono per attivare l'assistente</p>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">Apri <strong>WhatsApp</strong> sul telefono</div>
                 </div>
-
-                <div class="qr-card">
-                    <div class="qr-wrapper">
-                        <div class="qr-corner tl"></div>
-                        <div class="qr-corner tr"></div>
-                        <div class="qr-corner bl"></div>
-                        <div class="qr-corner br"></div>
-                        <img id="qr-image" src="" alt="QR Code WhatsApp" />
-                    </div>
-                    <div class="scan-hint">
-                        <span class="dot"></span>
-                        In attesa di scansione
-                    </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-text">Vai su <strong>Impostazioni → Dispositivi collegati</strong></div>
                 </div>
-
-                <div class="steps">
-                    <div class="step">
-                        <div class="step-num">1</div>
-                        <div class="step-text">Apri <strong>WhatsApp</strong> sul telefono</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">2</div>
-                        <div class="step-text">Vai su <strong>Impostazioni → Dispositivi collegati</strong></div>
-                    </div>
-                    <div class="step">
-                        <div class="step-num">3</div>
-                        <div class="step-text">Tocca <strong>Collega dispositivo</strong> e inquadra il codice</div>
-                    </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-text">Tocca <strong>Collega dispositivo</strong> e inquadra il codice</div>
                 </div>
             </div>
+        </div>
 
-            <!-- Connected State -->
-            <div id="connected-state" class="connected">
-                <div class="connected-icon">✓</div>
-                <h2>Collegato</h2>
-                <p>WhatsApp è connesso. Giulia è attiva e pronta a ricevere le notifiche delle chiamate.</p>
-            </div>
+        <!-- Connected State -->
+        <div id="connected-state" class="connected">
+            <div class="connected-icon">✓</div>
+            <h2>Collegato</h2>
+            <p>WhatsApp è connesso. Giulia è attiva e pronta a ricevere le notifiche delle chiamate.</p>
+        </div>
 
-            <!-- Loading State -->
-            <div id="loading-state" class="loading">
-                <div class="spinner"></div>
-                <p>Generazione codice QR...</p>
-            </div>
+        <!-- Loading State -->
+        <div id="loading-state" class="loading">
+            <div class="spinner"></div>
+            <p>Generazione codice QR...</p>
+        </div>
 
-            <div class="footer">
-                <p>Studio Ascolesi · Assistente Virtuale</p>
-            </div>
+        <div class="footer">
+            <p>Studio Ascolesi · Assistente Virtuale</p>
         </div>
     </div>
 
@@ -537,7 +539,6 @@
             loadingState.style.display = 'flex';
         }
 
-        // Poll for status
         let connected = false;
         async function checkStatus() {
             if (connected) return true;
@@ -567,7 +568,6 @@
         }
 
         checkStatus();
-
         setInterval(async () => {
             if (!connected) await checkStatus();
         }, 3000);
