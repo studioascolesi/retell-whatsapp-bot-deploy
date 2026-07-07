@@ -81,20 +81,29 @@ class RetellService {
     const highlights = [];
     const text = transcript.toLowerCase();
     
-    // Nome del chiamante (più pattern)
+    // ── CHI CHIAMA ──
+    // Nome del chiamante
     const namePatterns = [
-      /(?:mi chiamo|sono|qui con me|parla|il mio nome è|a parlar(e|ti) è|chi parla\?* sono)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
-      /(?:sono)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
-      /(?:parl[ao]|chi è\?*|di chi parlo\?*)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+      /(?:mi chiamo|sono il signor[ao]?|sono la signor[ao]?|sono avv?oc[ao]t[oa]?|parla|il mio nome è|a parlar[et] è|chi parla\?\s*sono|qui con (?:me|lui|lei))\s+([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i,
+      /(?:sono)\s+([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i,
+      /(?:parl[ao]|chi è|di chi parlo)\s+([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i,
     ];
     
     for (const pattern of namePatterns) {
       const match = transcript.match(pattern);
       if (match) {
-        const name = match[1] || match[0];
-        highlights.push(`👤 Nome: ${name.trim()}`);
-        break;
+        const name = (match[1] || match[0]).trim();
+        // Evita falsi positivi
+        if (!['il', 'la', 'le', 'lo', 'un', 'una', 'che', 'come', 'cosa', 'dove', 'quando', 'perché', 'bene', 'male'].includes(name.toLowerCase())) {
+          highlights.push(`👤 Nome: ${name}`);
+          break;
+        }
       }
+    }
+    
+    // Ruolo (avvocato, cliente, ecc.)
+    if (text.includes('avvocat') || text.includes('avv. ') || text.includes('legale')) {
+      highlights.push('⚖️ Ruolo: Avvocato/Legale');
     }
     
     // Numero del chiamante
@@ -109,57 +118,82 @@ class RetellService {
     
     // Codice fiscale
     const cfMatch = transcript.match(/\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b/);
-    if (cfMatch) highlights.push(`🪪 Codice fiscale: ${cfMatch[0]}`);
+    if (cfMatch) highlights.push(`🪪 CF: ${cfMatch[0]}`);
     
-    // Targa
+    // ── VEICOLO ──
     const targaMatch = transcript.match(/\b[A-Z]{2}\d{3}[A-Z]{2}\b/);
-    if (targaMatch) highlights.push(`🚗 Targa: ${targaMatch[0]}`);
+    if (targaMatch) highlights.push(`🔢 Targa: ${targaMatch[0]}`);
+    
+    if (text.includes('barca') || text.includes('imbarcazione') || text.includes('motore fuoribordo')) {
+      highlights.push('⛵ Veicolo: Barca');
+    } else if (text.includes('moto') || text.includes('motoveicolo')) {
+      highlights.push('🏍️ Veicolo: Moto');
+    } else if (text.includes('auto') || text.includes('automobile') || text.includes('macchina')) {
+      highlights.push('🚗 Veicolo: Auto');
+    }
+    
+    // ── TIPO RICHIESTA ──
+    // Sinistro / Danno
+    if (text.includes('sinistro') || text.includes('danno') || text.includes('incidente')) {
+      if (text.includes('perizia')) {
+        highlights.push('🔍 Sinistro + richiesta perizia');
+      } else {
+        highlights.push('🚨 Segnalazione sinistro/danno');
+      }
+    }
+    
+    // Perizia (anche senza sinistro)
+    if (text.includes('perizia') || text.includes('perito') || text.includes('sopralluogo')) {
+      if (!highlights.some(h => h.includes('perizia'))) {
+        highlights.push('🔍 Richiesta perizia');
+      }
+    }
+    
+    // Causa / Tribunale
+    if (text.includes('causa') || text.includes('tribunale') || text.includes('udienza') || text.includes('sentenza') || text.includes('giudice')) {
+      highlights.push('⚖️ Causa legale');
+    }
+    
+    // Documenti
+    if (text.includes('document') || text.includes('integrazione') || text.includes('manca') || text.includes('mancante')) {
+      highlights.push('📄 Documentazione richiesta');
+    }
+    
+    // Testimoni
+    if (text.includes('testimone') || text.includes('testimonial') || text.includes('dichiarazion')) {
+      highlights.push('👤 Menziona testimoni');
+    }
     
     // Polizza
     if (text.includes('polizza')) {
-      const polizzaMatch = transcript.match(/polizza\s+(?:n[°.]?\s*)?(\w+)/i);
-      if (polizzaMatch) highlights.push(`📋 Polizza: ${polizzaMatch[0]}`);
-      else highlights.push('📋 Discussione polizza');
+      if (text.includes('rinnovo') || text.includes('rinnovare')) {
+        highlights.push('🔄 Rinnovo polizza');
+      } else {
+        highlights.push('📋 Discussione polizza');
+      }
     }
     
-    // Preventivo/costo
-    if (text.includes('preventivo') || text.includes('quotazione')) {
-      highlights.push('💰 Richiesta preventivo');
-    }
-    if (text.includes('premio') || text.includes('costo') || text.includes('prezzo') || text.includes('euro')) {
-      highlights.push('💰 Argomento economico');
+    // Preventivo / Costo
+    if (text.includes('preventivo') || text.includes('quotazione') || text.includes('costo') || text.includes('prezzo')) {
+      highlights.push('💰 Preventivo/costo');
     }
     
-    // Sinistro
-    if (text.includes('sinistro') || text.includes('danno') || text.includes('incidente')) {
-      highlights.push('🚨 Segnalazione sinistro/danno');
+    // Risarcimento / Pagamento
+    if (text.includes('risarciment') || text.includes('pagamento') || text.includes('liquidazion')) {
+      highlights.push('💰 Risarcimento/pagamento');
     }
     
-    // Veicolo
-    if (text.includes('auto') || text.includes('automobile')) highlights.push('🚗 Veicolo: Auto');
-    if (text.includes('moto') || text.includes('motoveicolo')) highlights.push('🏍️ Veicolo: Moto');
-    if (text.includes('barca') || text.includes('imbarcazione')) highlights.push('⛵ Veicolo: Barca');
-    
-    // Tipo richiesta
-    if (text.includes('rinnovo')) highlights.push('🔄 Rinnovo polizza');
-    if (text.includes('nuova polizza') || text.includes('nuova assicurazione')) highlights.push('🆕 Nuova polizza');
-    if (text.includes('cambio') || text.includes('trasferimento')) highlights.push('🔄 Cambio/trasferimento');
-    
-    // Appuntamento/azione
-    if (text.includes('appuntamento') || text.includes('incontro')) highlights.push('📅 Appuntamento fissato');
-    if (text.includes('richiam') || text.includes('callback')) highlights.push('📞 Richiamo programmato');
-    if (text.includes('email') || text.includes('invio')) highlights.push('📧 Invio documenti/email');
-    
-    // Documenti
-    if (text.includes('document') || text.includes('modulo') || text.includes('carta identità')) {
-      highlights.push('📄 Documenti richiesti');
+    // Appuntamento
+    if (text.includes('appuntamento') || text.includes('incontro') || text.includes('passare')) {
+      highlights.push('📅 Richiesta appuntamento');
     }
     
-    // Scadenza
-    const scadenzaMatch = transcript.match(/scad[enz]\w*\s+(?:il\s+)?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
-    if (scadenzaMatch) highlights.push(`⏰ Scadenza: ${scadenzaMatch[1]}`);
+    // Richiamare
+    if (text.includes('richiam') || text.includes('callback')) {
+      highlights.push('📞 Richiamare il cliente');
+    }
     
-    return highlights.length > 0 ? highlights : ['nessun punto saliente specifico rilevato'];
+    return highlights.length > 0 ? highlights : ['📞 Chiamata ricevuta'];
   }
 
   /**
@@ -171,46 +205,45 @@ class RetellService {
     const data = {};
     const text = transcript.toLowerCase();
     
-    // Numero del chiamante (sempre presente)
+    // Numero del chiamante
     if (fromNumber && fromNumber !== 'N/A') {
       const formatted = fromNumber.replace(/^\+/, '').replace(/(\d{2})(\d{3})(\d{3})(\d{4})/, '+$1 $2 $3 $4');
       data.numeroChiamante = formatted;
     }
     
-    // Estrai tipo veicolo
-    if (text.includes('auto') || text.includes('automobile')) data.tipoVeicolo = 'Auto';
-    else if (text.includes('moto') || text.includes('motoveicolo')) data.tipoVeicolo = 'Moto';
-    else if (text.includes('barca') || text.includes('imbarcazione')) data.tipoVeicolo = 'Barca';
-    else if (text.includes('furgone') || text.includes('commercial')) data.tipoVeicolo = 'Veicolo commerciale';
+    // Tipo veicolo
+    if (text.includes('barca') || text.includes('imbarcazione') || text.includes('motore fuoribordo')) {
+      data.tipoVeicolo = 'Barca';
+    } else if (text.includes('moto') || text.includes('motoveicolo')) {
+      data.tipoVeicolo = 'Moto';
+    } else if (text.includes('auto') || text.includes('automobile') || text.includes('macchina')) {
+      data.tipoVeicolo = 'Auto';
+    }
     
-    // Estrai tipo richiesta
-    if (text.includes('preventivo') || text.includes('quotazione')) data.tipoRichiesta = 'Preventivo';
-    else if (text.includes('polizza') || text.includes('rinnovo')) data.tipoRichiesta = 'Polizza/Rinnovo';
-    else if (text.includes('sinistro') || text.includes('danno')) data.tipoRichiesta = 'Segnalazione sinistro';
-    else if (text.includes('informazioni') || text.includes('chiariment')) data.tipoRichiesta = 'Richiesta informazioni';
+    // Tipo richiesta (priorità)
+    if (text.includes('sinistro')) data.tipoRichiesta = 'Sinistro';
+    else if (text.includes('perizia') || text.includes('perito')) data.tipoRichiesta = 'Perizia';
+    else if (text.includes('causa') || text.includes('tribunale')) data.tipoRichiesta = 'Causa legale';
+    else if (text.includes('avvocat') || text.includes('legale')) data.tipoRichiesta = 'Rapporto avvocato';
+    else if (text.includes('document') || text.includes('integrazione')) data.tipoRichiesta = 'Documentazione';
+    else if (text.includes('testimone') || text.includes('dichiarazion')) data.tipoRichiesta = 'Testimoni';
+    else if (text.includes('polizza') || text.includes('rinnovo')) data.tipoRichiesta = 'Polizza';
+    else if (text.includes('preventivo') || text.includes('costo')) data.tipoRichiesta = 'Preventivo';
+    else if (text.includes('risarciment') || text.includes('pagamento')) data.tipoRichiesta = 'Risarcimento';
     
-    // Cerca date menzionate
+    // Date menzionate
     const dateRegex = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/g;
     const dates = transcript.match(dateRegex);
     if (dates) data.dateMenzionate = dates;
     
-    // Cerca importi
+    // Importi
     const amountRegex = /(?:euro|€|\$)\s*\d+(?:,\d{2})?|\d+(?:,\d{2})?\s*(?:euro|€|\$)/gi;
     const amounts = transcript.match(amountRegex);
     if (amounts) data.importi = amounts;
     
-    // Cerca altri numeri di telefono nel transcript (diversi dal chiamante)
-    const phoneRegex = /(?:\+39|0039|39)?\s*\d{3}\s*\d{3}\s*\d{4}/g;
-    const phones = transcript.match(phoneRegex);
-    if (phones) {
-      // Filtra il numero del chiamante se presente
-      const cleanFrom = fromNumber?.replace(/\D/g, '') || '';
-      const otherPhones = phones.filter(p => {
-        const clean = p.replace(/\D/g, '');
-        return clean !== cleanFrom && !cleanFrom.endsWith(clean) && !clean.endsWith(cleanFrom.slice(-10));
-      });
-      if (otherPhones.length > 0) data.altriTelefoni = otherPhones;
-    }
+    // Targa
+    const targaMatch = transcript.match(/\b[A-Z]{2}\d{3}[A-Z]{2}\b/);
+    if (targaMatch) data.targa = targaMatch[0];
     
     return data;
   }
