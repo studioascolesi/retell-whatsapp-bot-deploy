@@ -40,6 +40,18 @@ app.get('/status', (req, res) => {
   });
 });
 
+// Disconnetti WhatsApp e genera nuovo QR
+app.post('/disconnect', async (req, res) => {
+  try {
+    console.log('🔌 Richiesta disconnessione WhatsApp...');
+    const result = await whatsappService.disconnect();
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Errore disconnect:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ============================================
 // SETUP WHATSAPP WEB
 // Pagina premium per scansionare il QR code

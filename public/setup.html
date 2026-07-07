@@ -527,6 +527,51 @@
             max-width: 380px;
         }
 
+        /* disconnect button */
+        .disconnect-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-tertiary);
+            font-family: var(--sans);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .disconnect-btn:hover {
+            border-color: rgba(220,80,80,0.3);
+            color: #dc5050;
+            background: rgba(220,80,80,0.06);
+        }
+
+        .disconnect-btn:active {
+            transform: scale(0.97);
+        }
+
+        .disconnect-btn svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+
+        .disconnect-btn:hover svg {
+            opacity: 1;
+        }
+
+        .disconnect-btn.loading {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
         /* — loading — */
         .loading-state {
             display: none;
@@ -769,6 +814,13 @@
                 </div>
                 <h2>Giulia è attiva.</h2>
                 <p>WhatsApp è collegato. Lo Studio Ascolesi è ora raggiungibile tramite il tuo assistente virtuale.</p>
+                <button id="disconnect-btn" class="disconnect-btn" onclick="disconnectWhatsApp()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                        <line x1="12" y1="2" x2="12" y2="12"/>
+                    </svg>
+                    Disconnetti WhatsApp
+                </button>
             </div>
 
             <!-- Loading -->
@@ -823,6 +875,8 @@
         }
 
         let connected = false;
+        let pollingInterval = null;
+
         async function checkStatus() {
             if (connected) return true;
             try {
@@ -846,8 +900,49 @@
             return false;
         }
 
+        async function disconnectWhatsApp() {
+            const btn = document.getElementById('disconnect-btn');
+            if (!btn || btn.classList.contains('loading')) return;
+
+            btn.classList.add('loading');
+            btn.innerHTML = '<div class="loader" style="width:14px;height:14px;border-width:1.5px;"></div> Disconnessione…';
+
+            try {
+                const res = await fetch('/disconnect', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    connected = false;
+                    showLoading();
+                    // Riprendi il polling per catturare il nuovo QR
+                    pollingInterval = setInterval(async () => {
+                        if (!connected) await checkStatus();
+                    }, 3000);
+                } else {
+                    alert('Errore disconnessione: ' + (data.error || 'Sconosciuto'));
+                    resetDisconnectBtn();
+                }
+            } catch (e) {
+                alert('Errore di rete durante la disconnessione.');
+                resetDisconnectBtn();
+            }
+        }
+
+        function resetDisconnectBtn() {
+            const btn = document.getElementById('disconnect-btn');
+            if (!btn) return;
+            btn.classList.remove('loading');
+            btn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                    <line x1="12" y1="2" x2="12" y2="12"/>
+                </svg>
+                Disconnetti WhatsApp
+            `;
+        }
+
         checkStatus();
-        setInterval(async () => { if (!connected) await checkStatus(); }, 3000);
+        pollingInterval = setInterval(async () => { if (!connected) await checkStatus(); }, 3000);
     </script>
 </body>
 </html>

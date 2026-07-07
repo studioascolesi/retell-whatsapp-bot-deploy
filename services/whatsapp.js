@@ -136,6 +136,38 @@ class WhatsAppService {
   async sendFormattedMessage(recipient, message) {
     return this.sendMessage(recipient, message);
   }
+
+  async disconnect() {
+    console.log('🔌 Disconnessione WhatsApp in corso...');
+    
+    try {
+      if (this.sock) {
+        this.sock.end(undefined);
+        this.sock = null;
+      }
+
+      this.isReady = false;
+      this.currentQr = null;
+
+      // Cancella le credenziali salvate
+      if (fs.existsSync(this.authDir)) {
+        const files = fs.readdirSync(this.authDir);
+        for (const file of files) {
+          fs.unlinkSync(path.join(this.authDir, file));
+        }
+        console.log(`🗑️  Credenziali cancellate da: ${this.authDir}`);
+      }
+
+      // Ri-inizializza per generare un nuovo QR
+      console.log('🔄 Ri-inizializzazione WhatsApp...');
+      await this._init();
+
+      return { success: true, message: 'WhatsApp disconnesso. Nuovo QR in generazione.' };
+    } catch (error) {
+      console.error('❌ Errore disconnessione:', error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = { WhatsAppService };
