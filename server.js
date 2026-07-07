@@ -32,7 +32,7 @@ app.get('/health', (req, res) => {
 
 // Pagina stato stilizzata
 app.get('/stato', (req, res) => {
-  res.sendFile('health.html', { root: 'public' });
+  res.sendFile('stato.html', { root: 'public' });
 });
 
 app.get('/status', (req, res) => {
