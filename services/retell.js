@@ -81,25 +81,65 @@ class RetellService {
     const highlights = [];
     const text = transcript.toLowerCase();
     
-    // Pattern per assicurazioni
-    if (text.includes('polizza') || text.includes('assicurazione')) {
-      highlights.push(' discussingione polizza/assicurazione');
+    // Nomi e contatti
+    const nameMatch = transcript.match(/(?:mi chiamo|sono|qui con me|parla)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+    if (nameMatch) highlights.push(`👤 Nome: ${nameMatch[1]}`);
+    
+    // Email
+    const emailMatch = transcript.match(/[\w.-]+@[\w.-]+\.\w+/);
+    if (emailMatch) highlights.push(`📧 Email: ${emailMatch[0]}`);
+    
+    // Codice fiscale
+    const cfMatch = transcript.match(/\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b/);
+    if (cfMatch) highlights.push(`🪪 Codice fiscale: ${cfMatch[0]}`);
+    
+    // Targa
+    const targaMatch = transcript.match(/\b[A-Z]{2}\d{3}[A-Z]{2}\b/);
+    if (targaMatch) highlights.push(`🚗 Targa: ${targaMatch[0]}`);
+    
+    // Polizza
+    if (text.includes('polizza')) {
+      const polizzaMatch = transcript.match(/polizza\s+(?:n[°.]?\s*)?(\w+)/i);
+      if (polizzaMatch) highlights.push(`📋 Polizza: ${polizzaMatch[0]}`);
+      else highlights.push('📋 Discussione polizza');
     }
-    if (text.includes('premio') || text.includes('costo') || text.includes('prezzo')) {
-      highlights.push(' argomento economico/premium');
+    
+    // Preventivo/costo
+    if (text.includes('preventivo') || text.includes('quotazione')) {
+      highlights.push('💰 Richiesta preventivo');
     }
+    if (text.includes('premio') || text.includes('costo') || text.includes('prezzo') || text.includes('euro')) {
+      highlights.push('💰 Argomento economico');
+    }
+    
+    // Sinistro
     if (text.includes('sinistro') || text.includes('danno') || text.includes('incidente')) {
-      highlights.push(' riferimento a sinistro/danno');
+      highlights.push('🚨 Segnalazione sinistro/danno');
     }
-    if (text.includes('auto') || text.includes('moto') || text.includes('barca')) {
-      highlights.push(' veicolo menzionato');
+    
+    // Veicolo
+    if (text.includes('auto') || text.includes('automobile')) highlights.push('🚗 Veicolo: Auto');
+    if (text.includes('moto') || text.includes('motoveicolo')) highlights.push('🏍️ Veicolo: Moto');
+    if (text.includes('barca') || text.includes('imbarcazione')) highlights.push('⛵ Veicolo: Barca');
+    
+    // Tipo richiesta
+    if (text.includes('rinnovo')) highlights.push('🔄 Rinnovo polizza');
+    if (text.includes('nuova polizza') || text.includes('nuova assicurazione')) highlights.push('🆕 Nuova polizza');
+    if (text.includes('cambio') || text.includes('trasferimento')) highlights.push('🔄 Cambio/trasferimento');
+    
+    // Appuntamento/azione
+    if (text.includes('appuntamento') || text.includes('incontro')) highlights.push('📅 Appuntamento fissato');
+    if (text.includes('richiam') || text.includes('callback')) highlights.push('📞 Richiamo programmato');
+    if (text.includes('email') || text.includes('invio')) highlights.push('📧 Invio documenti/email');
+    
+    // Documenti
+    if (text.includes('document') || text.includes('modulo') || text.includes('carta identità')) {
+      highlights.push('📄 Documenti richiesti');
     }
-    if (text.includes('appuntamento') || text.includes('incontro') || text.includes('richiam')) {
-      highlights.push(' appuntamento fissato');
-    }
-    if (text.includes('document') || text.includes('modulo') || text.includes('richiesta')) {
-      highlights.push(' documenti/richieste menzionate');
-    }
+    
+    // Scadenza
+    const scadenzaMatch = transcript.match(/scad[enz]\w*\s+(?:il\s+)?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
+    if (scadenzaMatch) highlights.push(`⏰ Scadenza: ${scadenzaMatch[1]}`);
     
     return highlights.length > 0 ? highlights : ['nessun punto saliente specifico rilevato'];
   }
