@@ -409,7 +409,7 @@
         </div>
 
         <div class="footer">
-            <p>Studio Ascolesi · Powered by Retell AI</p>
+            <p>Studio Ascolesi · Assistente Virtuale</p>
         </div>
     </div>
 
@@ -439,12 +439,15 @@
         }
 
         // Poll for status
+        let connected = false;
         async function checkStatus() {
+            if (connected) return true;
             try {
                 const res = await fetch('/status');
                 const data = await res.json();
 
                 if (data.whatsapp.connected) {
+                    connected = true;
                     showConnected();
                     return true;
                 }
@@ -468,13 +471,10 @@
         // Initial check
         checkStatus();
 
-        // Poll every 2s
+        // Poll every 3s, stop when connected
         setInterval(async () => {
-            const connected = await checkStatus();
-            if (connected) {
-                setTimeout(() => window.location.reload(), 2000);
-            }
-        }, 2000);
+            if (!connected) await checkStatus();
+        }, 3000);
     </script>
 </body>
 </html>
