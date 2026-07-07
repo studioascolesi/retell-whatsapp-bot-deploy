@@ -193,6 +193,27 @@ class RetellService {
       highlights.push('📞 Richiamare il cliente');
     }
     
+    // Numero pratica
+    const praticaMatch = transcript.match(/(?:pratica|numero pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]*)/i);
+    if (praticaMatch) highlights.push(`📂 Pratica: ${praticaMatch[1]}`);
+    
+    // Numero sinistro
+    const sinistroMatch = transcript.match(/(?:sinistro|numero sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]*)/i);
+    if (sinistroMatch) highlights.push(`🚨 Sinistro: ${sinistroMatch[1]}`);
+    
+    // Compagnia assicurativa
+    const compagnie = ['general', 'assitalia', 'axa', 'allianz', 'unipol', 'zagame', 'convergenze', 'bper', 'intesa', 'sai', 'vittoria', 'groupama', 'terna', 'cattolica', 'poste', 'arca', 'helvetia', 'quixa', 'sara'];
+    for (const c of compagnie) {
+      if (text.includes(c.toLowerCase())) {
+        highlights.push(`🏢 Compagnia: ${c}`);
+        break;
+      }
+    }
+    
+    // Avvocato
+    const avvocatoMatch = transcript.match(/(?:avv[oc]*\.?\s+|avvocat[oa]?\s+)([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i);
+    if (avvocatoMatch) highlights.push(`⚖️ Avvocato: ${avvocatoMatch[0].trim()}`);
+    
     return highlights.length > 0 ? highlights : ['📞 Chiamata ricevuta'];
   }
 
@@ -230,6 +251,44 @@ class RetellService {
     else if (text.includes('polizza') || text.includes('rinnovo')) data.tipoRichiesta = 'Polizza';
     else if (text.includes('preventivo') || text.includes('costo')) data.tipoRichiesta = 'Preventivo';
     else if (text.includes('risarciment') || text.includes('pagamento')) data.tipoRichiesta = 'Risarcimento';
+    
+    // ── DATI AGGIUNTIVI DAL PROMPT ──
+    
+    // Numero pratica
+    const praticaMatch = transcript.match(/(?:pratica|numero pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]*)/i);
+    if (praticaMatch) data.numeroPratica = praticaMatch[1];
+    
+    // Numero sinistro
+    const sinistroMatch = transcript.match(/(?:sinistro|numero sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]*)/i);
+    if (sinistroMatch) data.numeroSinistro = sinistroMatch[1];
+    
+    // Compagnia assicurativa
+    const compagnie = ['general', 'assitalia', 'axa', 'allianz', 'Generali', 'unipol', 'zagame', 'convergenze', 'bper', 'intesa', 'sai', 'vittoria', 'groupama', 'terna', 'cattolica', 'poste', 'arca', 'helvetia', 'romagna', 'quixa', 'sara', 'reu'];
+    for (const c of compagnie) {
+      if (text.includes(c.toLowerCase())) {
+        data.compagniaAssicurativa = c;
+        break;
+      }
+    }
+    
+    // Avvocato di riferimento
+    const avvocatoMatch = transcript.match(/(?:avv[oc]*\.?\s+|avvocat[oa]?\s+)([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i);
+    if (avvocatoMatch) data.avvocatoDiRiferimento = avvocatoMatch[0].trim();
+    
+    // Studio legale
+    const studioMatch = transcript.match(/(?:studio\s+)([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i);
+    if (studioMatch && !studioMatch[1].toLowerCase().includes('ascolesi')) {
+      data.studioLegale = `Studio ${studioMatch[1].trim()}`;
+    }
+    
+    // Urgenza
+    if (text.includes('urgenz') || text.includes('urgente') || text.includes('subito') || text.includes('importante')) {
+      data.urgenza = 'Alta';
+    } else if (text.includes('non urgente') || text.includes('nessuna fretta') || text.includes('quando può')) {
+      data.urgenza = 'Bassa';
+    } else {
+      data.urgenza = 'Normale';
+    }
     
     // Date menzionate
     const dateRegex = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/g;

@@ -134,40 +134,45 @@ class MessageFormatter {
     if (sd.tipoVeicolo) dettagli.push(`🚗 Veicolo: ${sd.tipoVeicolo}`);
     
     // Targa
-    const targaH = (callData.highlights || []).find(h => h.startsWith('🚗 Targa:'));
-    if (targaH) dettagli.push(`🔢 Targa: ${targaH.replace('🚗 Targa: ', '')}`);
+    if (sd.targa) dettagli.push(`🔢 Targa: ${sd.targa}`);
+    
+    // Numero pratica
+    if (sd.numeroPratica) dettagli.push(`📂 Pratica: ${sd.numeroPratica}`);
+    
+    // Numero sinistro
+    if (sd.numeroSinistro) dettagli.push(`🚨 Sinistro: ${sd.numeroSinistro}`);
+    
+    // Compagnia assicurativa
+    if (sd.compagniaAssicurativa) dettagli.push(`🏢 Compagnia: ${sd.compagniaAssicurativa}`);
+    
+    // Avvocato di riferimento
+    if (sd.avvocatoDiRiferimento) dettagli.push(`⚖️ Avvocato: ${sd.avvocatoDiRiferimento}`);
+    
+    // Studio legale
+    if (sd.studioLegale) dettagli.push(`🏛️ Studio: ${sd.studioLegale}`);
+    
+    // Urgenza
+    if (sd.urgenza && sd.urgenza !== 'Normale') {
+      dettagli.push(`🔴 Urgenza: ${sd.urgenza}`);
+    }
+    
+    // Email
+    const emailH = (callData.highlights || []).find(h => h.startsWith('📧 Email:'));
+    if (emailH) dettagli.push(`📧 ${emailH.replace('📧 Email: ', '')}`);
     
     // Polizza
     const polizzaH = (callData.highlights || []).find(h => h.includes('Polizza') && !h.includes('Discussione'));
     if (polizzaH) dettagli.push(`📋 ${polizzaH.replace('📋 ', '')}`);
     
-    // Perizia
-    if (text.includes('perizia') || text.includes('perito')) dettagli.push('🔍 Menziona perizia/perito');
-    
-    // Documenti mancanti
-    if (text.includes('manca') || text.includes('mancante') || text.includes('integrazione')) {
-      dettagli.push('📄 Documentazione incompleta');
-    }
-    
-    // Testimoni
-    if (text.includes('testimone') || text.includes('testimonial')) dettagli.push('👤 Menziona testimoni');
-    
-    // Causa
-    if (text.includes('causa') || text.includes('tribunale')) dettagli.push('⚖️ Menziona causa legale');
-    
     // Date
     if (sd.dateMenzionate && sd.dateMenzionate.length > 0) {
-      dettagli.push(`📅 Date: ${sd.dateMenzionate.join(', ')}`);
+      dettagli.push(`📅 ${sd.dateMenzionate.join(', ')}`);
     }
     
     // Importi
     if (sd.importi && sd.importi.length > 0) {
       dettagli.push(`💰 ${sd.importi.join(', ')}`);
     }
-    
-    // Email
-    const emailH = (callData.highlights || []).find(h => h.startsWith('📧 Email:'));
-    if (emailH) dettagli.push(`📧 ${emailH.replace('📧 Email: ', '')}`);
     
     return dettagli;
   }
