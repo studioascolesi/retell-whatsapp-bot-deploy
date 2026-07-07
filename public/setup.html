@@ -21,6 +21,7 @@
             --gold-light: #dfc08a;
             --gold-dim: rgba(201,169,110,0.12);
             --gold-glow: rgba(201,169,110,0.06);
+            --gold-glow-strong: rgba(201,169,110,0.14);
             --text: #e8e4dc;
             --text-secondary: #7a756c;
             --text-tertiary: #4a4640;
@@ -29,6 +30,12 @@
         }
 
         html { scroll-behavior: smooth; }
+
+        /* premium scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.08); }
 
         body {
             font-family: var(--sans);
@@ -58,14 +65,30 @@
             content: '';
             position: fixed;
             inset: 0;
-            opacity: 0.35;
+            opacity: 0.3;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
             pointer-events: none;
             z-index: 0;
         }
 
+        /* mouse-follow glow */
+        .cursor-glow {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(201,169,110,0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.4s ease;
+            opacity: 0;
+        }
+
+        .cursor-glow.active { opacity: 1; }
+
         /* ============================================
-           LAYOUT — two column, asymmetric
+           LAYOUT
            ============================================ */
         .layout {
             display: grid;
@@ -124,14 +147,13 @@
             filter: brightness(0.92) contrast(1.05) drop-shadow(0 -20px 80px rgba(0,0,0,0.6));
             opacity: 0;
             transform: translateY(50px) scale(0.97);
-            animation: visual-reveal 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+            animation: visual-reveal 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
         }
 
         @keyframes visual-reveal {
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* decorative line */
         .visual-line {
             position: absolute;
             bottom: 12%;
@@ -193,10 +215,15 @@
 
         .eyebrow::before {
             content: '';
-            width: 24px;
+            width: 0;
             height: 1px;
             background: var(--gold);
-            opacity: 0.4;
+            opacity: 0.5;
+            animation: eyebrow-line 0.8s ease-out 1s forwards;
+        }
+
+        @keyframes eyebrow-line {
+            to { width: 24px; }
         }
 
         .title {
@@ -212,6 +239,17 @@
             font-style: italic;
             font-weight: 400;
             color: var(--gold-light);
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-light) 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 6s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 200% center; }
+            50% { background-position: 0% center; }
         }
 
         .subtitle {
@@ -239,6 +277,11 @@
         .qr-frame {
             position: relative;
             flex-shrink: 0;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .qr-frame:hover {
+            transform: scale(1.03);
         }
 
         .qr-frame::before {
@@ -248,6 +291,12 @@
             border: 1px solid var(--border);
             border-radius: 16px;
             pointer-events: none;
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .qr-frame:hover::before {
+            border-color: rgba(201,169,110,0.15);
+            box-shadow: 0 0 40px var(--gold-glow);
         }
 
         .qr-inner {
@@ -259,6 +308,14 @@
                 0 0 0 1px rgba(255,255,255,0.04),
                 0 12px 40px rgba(0,0,0,0.4),
                 0 0 80px var(--gold-glow);
+            transition: box-shadow 0.5s ease;
+        }
+
+        .qr-frame:hover .qr-inner {
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.06),
+                0 16px 50px rgba(0,0,0,0.5),
+                0 0 100px var(--gold-glow-strong);
         }
 
         .qr-inner img {
@@ -266,6 +323,11 @@
             width: 140px;
             height: 140px;
             border-radius: 6px;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .qr-frame:hover .qr-inner img {
+            transform: scale(1.02);
         }
 
         /* corner accents */
@@ -275,7 +337,14 @@
             height: 14px;
             border-color: var(--gold);
             border-style: solid;
-            opacity: 0.35;
+            opacity: 0.3;
+            transition: opacity 0.4s ease, width 0.4s ease, height 0.4s ease;
+        }
+
+        .qr-frame:hover .qr-corner {
+            opacity: 0.6;
+            width: 18px;
+            height: 18px;
         }
 
         .qr-corner.tl { top: -1px; left: -1px; border-width: 1.5px 0 0 1.5px; border-radius: 4px 0 0 0; }
@@ -291,25 +360,44 @@
             font-family: var(--serif);
             font-size: 20px;
             font-weight: 400;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             color: var(--text);
+            transition: color 0.3s ease;
         }
 
         .qr-step {
             display: flex;
             align-items: flex-start;
             gap: 12px;
-            padding: 8px 0;
+            padding: 10px 0;
+            opacity: 0;
+            transform: translateX(-8px);
+            animation: step-reveal 0.5s ease-out forwards;
+        }
+
+        .qr-step:nth-child(2) { animation-delay: 1.0s; }
+        .qr-step:nth-child(3) { animation-delay: 1.15s; }
+        .qr-step:nth-child(4) { animation-delay: 1.3s; }
+
+        @keyframes step-reveal {
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .qr-step + .qr-step {
             border-top: 1px solid var(--border-subtle);
         }
 
+        .qr-step:hover .qr-step-num {
+            background: var(--gold);
+            color: var(--bg-deep);
+            box-shadow: 0 0 20px rgba(201,169,110,0.3);
+            transform: scale(1.1);
+        }
+
         .qr-step-num {
-            width: 22px;
-            height: 22px;
-            border-radius: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 7px;
             background: var(--gold-dim);
             color: var(--gold);
             display: flex;
@@ -319,12 +407,18 @@
             font-weight: 600;
             flex-shrink: 0;
             margin-top: 1px;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .qr-step-text {
             font-size: 13px;
             color: var(--text-secondary);
             line-height: 1.5;
+            transition: color 0.3s ease;
+        }
+
+        .qr-step:hover .qr-step-text {
+            color: var(--text);
         }
 
         .qr-step-text strong {
@@ -340,6 +434,8 @@
             margin-top: 24px;
             padding-top: 20px;
             border-top: 1px solid var(--border-subtle);
+            opacity: 0;
+            animation: content-reveal 0.6s ease-out 1.5s forwards;
         }
 
         .status-dot {
@@ -349,17 +445,27 @@
             background: var(--gold);
             box-shadow: 0 0 12px rgba(201,169,110,0.4);
             animation: status-blink 2.5s ease-in-out infinite;
+            transition: transform 0.3s ease;
+        }
+
+        .status:hover .status-dot {
+            transform: scale(1.4);
         }
 
         @keyframes status-blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.85); }
         }
 
         .status-text {
             font-size: 12px;
             color: var(--text-tertiary);
             letter-spacing: 0.04em;
+            transition: color 0.3s ease;
+        }
+
+        .status:hover .status-text {
+            color: var(--text-secondary);
         }
 
         /* — connected state — */
@@ -379,6 +485,12 @@
             background: var(--gold-dim);
             border: 1px solid rgba(201,169,110,0.15);
             border-radius: 40px;
+            transition: all 0.4s ease;
+        }
+
+        .connected-badge:hover {
+            background: rgba(201,169,110,0.18);
+            box-shadow: 0 0 30px rgba(201,169,110,0.1);
         }
 
         .connected-badge .dot {
@@ -387,6 +499,12 @@
             background: var(--gold);
             border-radius: 50%;
             box-shadow: 0 0 16px rgba(201,169,110,0.5);
+            animation: connected-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes connected-pulse {
+            0%, 100% { box-shadow: 0 0 16px rgba(201,169,110,0.5); }
+            50% { box-shadow: 0 0 28px rgba(201,169,110,0.7); }
         }
 
         .connected-badge span {
@@ -432,6 +550,12 @@
             font-size: 13px;
             color: var(--text-tertiary);
             letter-spacing: 0.03em;
+            animation: loading-dots 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loading-dots {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
         }
 
         /* footer */
@@ -443,16 +567,26 @@
         }
 
         .footer-line {
-            width: 32px;
+            width: 0;
             height: 1px;
-            background: var(--border);
+            background: linear-gradient(90deg, var(--gold), var(--border));
             margin-bottom: 16px;
+            animation: footer-line-grow 1s ease-out 1.6s forwards;
+        }
+
+        @keyframes footer-line-grow {
+            to { width: 32px; }
         }
 
         .footer p {
             font-size: 11px;
             color: var(--text-tertiary);
             letter-spacing: 0.06em;
+            transition: color 0.3s ease;
+        }
+
+        .footer:hover p {
+            color: var(--text-secondary);
         }
 
         /* animation util */
@@ -469,14 +603,9 @@
             .visual img { max-width: 380px; }
         }
 
-        /* mobile Giulia — injected next to QR */
-        .giulia-mobile {
-            display: none;
-        }
-
-        .qr-visual-row {
-            display: contents;
-        }
+        /* mobile Giulia */
+        .giulia-mobile { display: none; }
+        .qr-visual-row { display: contents; }
 
         /* ============================================
            RESPONSIVE — mobile
@@ -487,10 +616,7 @@
                 grid-template-rows: 1fr;
             }
 
-            /* hide the full desktop visual */
-            .visual {
-                display: none;
-            }
+            .visual { display: none; }
 
             .content {
                 padding: 40px 28px 60px;
@@ -502,7 +628,6 @@
             .title { font-size: 32px; }
             .subtitle { font-size: 14px; }
 
-            /* show mobile Giulia next to QR */
             .giulia-mobile {
                 display: flex;
                 align-items: flex-end;
@@ -530,7 +655,6 @@
                 100% { opacity: 1; transform: translateY(0); }
             }
 
-            /* QR + Giulia row */
             .qr-visual-row {
                 display: flex;
                 align-items: flex-end;
@@ -548,36 +672,19 @@
 
             .qr-inner img { width: 130px; height: 130px; }
 
-            /* steps below */
-            .qr-details {
-                padding-top: 0;
-                margin-top: auto;
-            }
-
-            .qr-details h3 {
-                font-size: 19px;
-                margin-bottom: 12px;
-                margin-top: 0;
-            }
-
+            .qr-details { padding-top: 0; margin-top: auto; }
+            .qr-details h3 { font-size: 19px; margin-bottom: 12px; margin-top: 0; }
             .qr-step-num { width: 26px; height: 26px; font-size: 12px; }
             .qr-step-text { font-size: 14px; }
             .qr-step { padding: 10px 0; gap: 14px; }
-
-            .status {
-                margin-top: 20px;
-                padding-top: 18px;
-            }
-
+            .status { margin-top: 20px; padding-top: 18px; }
             .status-text { font-size: 13px; }
         }
 
         @media (max-width: 480px) {
             .content { padding: 32px 20px 48px; }
             .title { font-size: 28px; }
-
             .giulia-mobile { width: 100px; }
-
             .qr-visual-row { gap: 14px; margin-bottom: 28px; }
             .qr-inner img { width: 110px; height: 110px; }
             .qr-step-num { width: 20px; height: 20px; font-size: 10px; }
@@ -585,9 +692,20 @@
             .qr-details h3 { font-size: 16px; margin-bottom: 8px; }
             .qr-step { padding: 6px 0; }
         }
+
+        /* reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-delay: 0ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="cursor-glow" id="cursorGlow"></div>
+
     <div class="layout">
         <!-- LEFT — Giulia -->
         <div class="visual">
@@ -606,7 +724,6 @@
             <!-- QR State -->
             <div id="qr-state" class="qr-zone">
                 <div class="qr-container">
-                    <!-- QR + Giulia row (mobile) -->
                     <div class="qr-visual-row">
                         <div class="qr-frame">
                             <div class="qr-inner">
@@ -617,13 +734,11 @@
                                 <img id="qr-image" src="" alt="QR Code" />
                             </div>
                         </div>
-                        <!-- Mobile Giulia (hidden on desktop) -->
                         <div class="giulia-mobile">
                             <img src="/giulia.png" alt="Giulia" />
                         </div>
                     </div>
 
-                    <!-- Steps below -->
                     <div class="qr-details">
                         <h3>Collega in 3 passaggi</h3>
                         <div class="qr-step">
@@ -670,6 +785,18 @@
     </div>
 
     <script>
+        // Cursor glow
+        const glow = document.getElementById('cursorGlow');
+        let glowTimeout;
+        document.addEventListener('mousemove', (e) => {
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+            glow.classList.add('active');
+            clearTimeout(glowTimeout);
+            glowTimeout = setTimeout(() => glow.classList.remove('active'), 2000);
+        });
+
+        // QR state
         const qrState = document.getElementById('qr-state');
         const connectedState = document.getElementById('connected-state');
         const loadingState = document.getElementById('loading-state');
