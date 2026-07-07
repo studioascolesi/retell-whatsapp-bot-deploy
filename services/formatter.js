@@ -5,17 +5,18 @@ class MessageFormatter {
     const lines = [];
     const text = (callData.transcript || '').toLowerCase();
     
-    // Estrai nome cliente
+    // Chi chiama
     const nameH = (callData.highlights || []).find(h => h.startsWith('👤 Nome:'));
-    const clientName = nameH ? nameH.replace('👤 Nome: ', '').trim() : null;
+    const callerName = nameH ? nameH.replace('👤 Nome: ', '').trim() : null;
     
-    // Saluto
-    if (clientName) {
-      lines.push(`Ciao ${clientName}! 👋`);
+    // Saluto sempre a Massimo
+    lines.push('Ciao Massimo! 👋');
+    
+    if (callerName) {
+      lines.push(`Ho appena ricevuto una chiamata da *${callerName}*.`);
     } else {
-      lines.push('Ciao! 👋');
+      lines.push('Ho appena ricevuto una chiamata.');
     }
-    lines.push('Nuova chiamata in arrivo.');
     lines.push('');
     
     // Info base
