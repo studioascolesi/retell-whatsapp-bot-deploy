@@ -94,6 +94,11 @@ app.get('/qr', async (req, res) => {
 const webhookLog = [];
 const MAX_LOG = 20;
 
+// Cache per unire call_ended + call_analyzed
+// Chiave: callId, Valore: { callDetails, timestamp }
+const pendingCalls = new Map();
+const CALL_ANALYSIS_TIMEOUT_MS = 30_000; // 30 secondi timeout
+
 app.get('/webhook/log', (req, res) => {
   res.json(webhookLog);
 });
@@ -127,11 +132,11 @@ app.post('/webhook/retell', async (req, res) => {
     }
 
     if (event === 'call_ended') {
-      console.log('⏹️  Chiamata terminata');
+      console.log('⏹️  Chiamata terminata — salvo dati in cache, attendo call_analyzed');
       
       res.status(200).json({ 
         received: true,
-        status: 'processing_in_background'
+        status: 'waiting_for_analysis'
       });
       
       const callId = callData.call_id;
@@ -140,19 +145,34 @@ app.post('/webhook/retell', async (req, res) => {
       console.log(`👤 Da: ${callData.from_number} → A: ${callData.to_number}`);
       console.log(`📝 Transcript: ${(callData.transcript||'').length}c | Segments: ${(callData.transcript_object||[]).length}`);
 
-      (async () => {
-        try {
-          const callDetails = retellService.parseWebhookData(callData);
-          const message = formatter.formatCallReport(callDetails);
+      // Salva in cache per unire con call_analyzed
+      const callDetails = retellService.parseWebhookData(callData);
+      pendingCalls.set(callId, {
+        callDetails,
+        callData,
+        timestamp: Date.now()
+      });
+      console.log(`💾 Dati salvati in cache per callId: ${callId}`);
+      
+      // Timeout: se call_analyzed non arriva entro 30s, invia comunque con dati da transcript
+      setTimeout(() => {
+        const pending = pendingCalls.get(callId);
+        if (pending) {
+          console.log(`⏰ Timeout call_analyzed per ${callId} — invio con dati da transcript`);
+          pendingCalls.delete(callId);
           
-          const recipient = process.env.WHATSAPP_RECIPIENT;
-          await whatsappService.sendMessage(recipient, message);
-          
-          console.log('✅ Messaggio WhatsApp inviato con successo!');
-        } catch (bgError) {
-          console.error('❌ Errore durante l\'elaborazione in background:', bgError.message);
+          (async () => {
+            try {
+              const message = formatter.formatCallReport(pending.callDetails);
+              const recipient = process.env.WHATSAPP_RECIPIENT;
+              await whatsappService.sendMessage(recipient, message);
+              console.log('✅ Messaggio WhatsApp inviato (fallback timeout)');
+            } catch (err) {
+              console.error('❌ Errore invio fallback:', err.message);
+            }
+          })();
         }
-      })();
+      }, CALL_ANALYSIS_TIMEOUT_MS);
       
       return;
     }
@@ -162,11 +182,41 @@ app.post('/webhook/retell', async (req, res) => {
       
       res.status(200).json({ received: true });
       
+      const callId = callData.call_id;
       const callAnalysis = callData.call_analysis;
+      
       if (callAnalysis?.call_summary) {
         console.log(`📝 Summary: ${callAnalysis.call_summary.substring(0, 100)}...`);
         console.log(`💬 Sentiment: ${callAnalysis.user_sentiment}`);
         console.log(`✅ Successful: ${callAnalysis.call_successful}`);
+      }
+      
+      // Recupera dati dalla cache e unisci con call_analysis
+      const pending = pendingCalls.get(callId);
+      if (pending) {
+        pendingCalls.delete(callId);
+        console.log(`🔗 Dati uniti per callId: ${callId} — invio WhatsApp con call_analysis`);
+        
+        // Unisci: mantieni i dati del transcript, sovrascrivi con call_analysis
+        if (callAnalysis) {
+          pending.callDetails.callSummary = callAnalysis.call_summary || pending.callDetails.callSummary;
+          pending.callDetails.sentiment = callAnalysis.user_sentiment || pending.callDetails.sentiment;
+          pending.callDetails.callSuccessful = callAnalysis.call_successful ?? pending.callDetails.callSuccessful;
+          pending.callDetails.customAnalysisData = callAnalysis.custom_analysis_data || null;
+        }
+        
+        (async () => {
+          try {
+            const message = formatter.formatCallReport(pending.callDetails);
+            const recipient = process.env.WHATSAPP_RECIPIENT;
+            await whatsappService.sendMessage(recipient, message);
+            console.log('✅ Messaggio WhatsApp inviato con call_analysis!');
+          } catch (err) {
+            console.error('❌ Errore invio WhatsApp:', err.message);
+          }
+        })();
+      } else {
+        console.log(`ℹ️  Nessun pending per callId: ${callId} — call_ended non ancora ricevuto o già elaborato`);
       }
       
       return;
@@ -184,6 +234,17 @@ app.post('/webhook/retell', async (req, res) => {
     });
   }
 });
+
+// Cleanup periodico della cache pending (ogni 60s)
+setInterval(() => {
+  const now = Date.now();
+  for (const [callId, entry] of pendingCalls) {
+    if (now - entry.timestamp > 60_000) {
+      console.log(`🧹 Rimuovo pending scaduto: ${callId}`);
+      pendingCalls.delete(callId);
+    }
+  }
+}, 60_000);
 
 // Endpoint per testare l'invio WhatsApp manualmente
 app.post('/test/whatsapp', async (req, res) => {
