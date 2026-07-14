@@ -21,6 +21,11 @@ const retellService = new RetellService();
 const whatsappService = new WhatsAppService();
 const formatter = new MessageFormatter();
 
+// Redirect root to setup page
+app.get('/', (req, res) => {
+  res.redirect('/setup');
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
