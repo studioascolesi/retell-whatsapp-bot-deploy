@@ -205,13 +205,13 @@ class RetellService {
       highlights.push('📞 Richiamare il cliente');
     }
     
-    // Numero pratica - solo da userText, richiede almeno una cifra
-    const praticaMatch = userText.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\d[\w\-\/]*\d|\d+)/i);
-    if (praticaMatch) highlights.push(`📂 Pratica: ${praticaMatch[1]}`);
+    // Numero pratica - solo da userText
+    const praticaMatch = userText.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
+    if (praticaMatch && praticaMatch[1].length > 1) highlights.push(`📂 Pratica: ${praticaMatch[1]}`);
     
-    // Numero sinistro - solo da userText, richiede almeno una cifra
-    const sinistroMatch = userText.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\d[\w\-\/]*\d|\d+)/i);
-    if (sinistroMatch) highlights.push(`🚨 Sinistro: ${sinistroMatch[1]}`);
+    // Numero sinistro - solo da userText
+    const sinistroMatch = userText.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
+    if (sinistroMatch && sinistroMatch[1].length > 1) highlights.push(`🚨 Sinistro: ${sinistroMatch[1]}`);
     
     // Compagnia assicurativa - solo da userText
     const compagnie = ['general', 'assitalia', 'axa', 'allianz', 'unipol', 'zagame', 'convergenze', 'bper', 'intesa', 'sai', 'vittoria', 'groupama', 'terna', 'cattolica', 'poste', 'arca', 'helvetia', 'quixa', 'sara'];
@@ -266,13 +266,13 @@ class RetellService {
     
     // ── DATI AGGIUNTIVI DAL PROMPT ──
     
-    // Numero pratica — richiede almeno una cifra
-    const praticaMatch = transcript.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\d[\w\-\/]*\d|\d+)/i);
-    if (praticaMatch) data.numeroPratica = praticaMatch[1];
+    // Numero pratica
+    const praticaMatch = transcript.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
+    if (praticaMatch && praticaMatch[1].length > 1) data.numeroPratica = praticaMatch[1];
     
-    // Numero sinistro — richiede almeno una cifra
-    const sinistroMatch = transcript.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\d[\w\-\/]*\d|\d+)/i);
-    if (sinistroMatch) data.numeroSinistro = sinistroMatch[1];
+    // Numero sinistro
+    const sinistroMatch = transcript.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
+    if (sinistroMatch && sinistroMatch[1].length > 1) data.numeroSinistro = sinistroMatch[1];
     
     // Compagnia assicurativa
     const compagnie = ['general', 'assitalia', 'axa', 'allianz', 'Generali', 'unipol', 'zagame', 'convergenze', 'bper', 'intesa', 'sai', 'vittoria', 'groupama', 'terna', 'cattolica', 'poste', 'arca', 'helvetia', 'romagna', 'quixa', 'sara', 'reu'];
