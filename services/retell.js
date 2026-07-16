@@ -211,13 +211,13 @@ class RetellService {
       highlights.push('📞 Richiamare il cliente');
     }
     
-    // Numero pratica - solo da userText
-    const praticaMatch = userText.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
-    if (praticaMatch && praticaMatch[1].length > 1) highlights.push(`📂 Pratica: ${praticaMatch[1]}`);
+    // Numero pratica / causa - solo da userText (almeno 3 chars con almeno un numero)
+    const praticaMatch = userText.match(/(?:pratica|causa|numero\s*(?:pratica|causa)|n[°.]*\s*(?:pratica|causa))\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
+    if (praticaMatch && praticaMatch[1].length >= 3 && /\d/.test(praticaMatch[1])) highlights.push(`📂 Pratica: ${praticaMatch[1]}`);
     
-    // Numero sinistro - solo da userText
+    // Numero sinistro - solo da userText (almeno 3 chars con almeno un numero)
     const sinistroMatch = userText.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
-    if (sinistroMatch && sinistroMatch[1].length > 1) highlights.push(`🚨 Sinistro: ${sinistroMatch[1]}`);
+    if (sinistroMatch && sinistroMatch[1].length >= 3 && /\d/.test(sinistroMatch[1])) highlights.push(`🚨 Sinistro: ${sinistroMatch[1]}`);
     
     // Compagnia assicurativa - solo da userText
     const compagnie = ['general', 'assitalia', 'axa', 'allianz', 'unipol', 'zagame', 'convergenze', 'bper', 'intesa', 'sai', 'vittoria', 'groupama', 'terna', 'cattolica', 'poste', 'arca', 'helvetia', 'quixa', 'sara'];
@@ -231,6 +231,13 @@ class RetellService {
     // Avvocato - solo da userText
     const avvocatoMatch = userText.match(/(?:avv[oc]*\.?\s+|avvocat[oa]?\s+)([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i);
     if (avvocatoMatch) highlights.push(`⚖️ Avvocato: ${avvocatoMatch[0].trim()}`);
+    
+    // Date menzionate (italiano: "13 luglio 2026")
+    const mesiIt = 'gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre';
+    const dateItMatch = userText.match(new RegExp(`(\\d{1,2})\\s+(${mesiIt})\\s+(\\d{4})`, 'gi'));
+    if (dateItMatch) {
+      dateItMatch.forEach(d => highlights.push(`📅 Data: ${d}`));
+    }
     
     console.log(`🔍 [HL] highlights estratti: ${highlights.length} → ${highlights.join(' | ')}`);
     return highlights.length > 0 ? highlights : ['📞 Chiamata ricevuta'];
@@ -276,13 +283,13 @@ class RetellService {
     
     // ── DATI AGGIUNTIVI DAL PROMPT ──
     
-    // Numero pratica
-    const praticaMatch = transcript.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
-    if (praticaMatch && praticaMatch[1].length > 1) data.numeroPratica = praticaMatch[1];
+    // Numero pratica / causa (almeno 3 chars, deve contenere almeno un numero)
+    const praticaMatch = transcript.match(/(?:pratica|causa|numero\s*(?:pratica|causa)|n[°.]*\s*(?:pratica|causa))\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
+    if (praticaMatch && praticaMatch[1].length >= 3 && /\d/.test(praticaMatch[1])) data.numeroPratica = praticaMatch[1];
     
-    // Numero sinistro
+    // Numero sinistro (almeno 3 chars, deve contenere almeno un numero)
     const sinistroMatch = transcript.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]+)/i);
-    if (sinistroMatch && sinistroMatch[1].length > 1) data.numeroSinistro = sinistroMatch[1];
+    if (sinistroMatch && sinistroMatch[1].length >= 3 && /\d/.test(sinistroMatch[1])) data.numeroSinistro = sinistroMatch[1];
     
     // Compagnia assicurativa
     const compagnie = ['general', 'assitalia', 'axa', 'allianz', 'Generali', 'unipol', 'zagame', 'convergenze', 'bper', 'intesa', 'sai', 'vittoria', 'groupama', 'terna', 'cattolica', 'poste', 'arca', 'helvetia', 'romagna', 'quixa', 'sara', 'reu'];
