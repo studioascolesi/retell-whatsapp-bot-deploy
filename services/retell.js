@@ -78,7 +78,7 @@ class RetellService {
   _getUserText(transcriptObject) {
     if (!transcriptObject || !Array.isArray(transcriptObject)) return '';
     return transcriptObject
-      .filter(seg => seg.role === 'user')
+      .filter(seg => seg.role && seg.role.toLowerCase() === 'user')
       .map(seg => seg.content)
       .join(' ');
   }
@@ -89,7 +89,7 @@ class RetellService {
   _getAgentText(transcriptObject) {
     if (!transcriptObject || !Array.isArray(transcriptObject)) return '';
     return transcriptObject
-      .filter(seg => seg.role === 'agent')
+      .filter(seg => seg.role && seg.role.toLowerCase() === 'agent')
       .map(seg => seg.content)
       .join(' ');
   }
@@ -105,11 +105,16 @@ class RetellService {
     const userText = this._getUserText(transcriptObject).toLowerCase();
     const fullText = transcript.toLowerCase();
     
+    console.log(`🔍 [HL] userText length: ${userText.length} | fullText length: ${fullText.length}`);
+    if (userText) console.log(`🔍 [HL] userText preview: ${userText.substring(0, 150)}`);
+    
     // ── CHI CHIAMA (solo da messaggi del cliente) ──
     const namePatterns = [
       /(?:mi chiamo|sono il signor[ao]?|sono la signor[ao]?|sono avv?oc[ao]t[oa]?|parla|il mio nome è|a parlar[et] è|chi parla\?\s*sono|qui con (?:me|lui|lei))\s+([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i,
       /(?:sono)\s+([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i,
       /(?:parl[ao]|chi è|di chi parlo)\s+([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i,
+      // "il cliente presentato è Giacomo Di Luigi"
+      /(?:cliente\s+)?(?:presentato\s+è|è|si\s+chiama)\s+([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i,
     ];
     
     for (const pattern of namePatterns) {
@@ -143,8 +148,9 @@ class RetellService {
     if (cfMatch) highlights.push(`🪪 CF: ${cfMatch[0]}`);
     
     // ── VEICOLO (da fullText) ──
-    const targaMatch = transcript.match(/\b[A-Z]{2}\d{3}[A-Z]{2}\b/);
-    if (targaMatch) highlights.push(`🔢 Targa: ${targaMatch[0]}`);
+    // Targa — formato standard e con spazi (es. "GH 61 YW" → GH61YW)
+    const targaMatchHL = transcript.match(/\b([A-Za-z]{2})\s*(\d{1,3})\s*([A-Za-z]{2})\b/);
+    if (targaMatchHL) highlights.push(`🔢 Targa: ${targaMatchHL[1].toUpperCase()}${targaMatchHL[2]}${targaMatchHL[3].toUpperCase()}`);
     
     if (fullText.includes('barca') || fullText.includes('imbarcazione') || fullText.includes('motore fuoribordo')) {
       highlights.push('⛵ Veicolo: Barca');
@@ -226,6 +232,7 @@ class RetellService {
     const avvocatoMatch = userText.match(/(?:avv[oc]*\.?\s+|avvocat[oa]?\s+)([A-ZÀ-Ü][a-zà-ü]+(?:\s+[A-ZÀ-Ü][a-zà-ü]+){0,2})/i);
     if (avvocatoMatch) highlights.push(`⚖️ Avvocato: ${avvocatoMatch[0].trim()}`);
     
+    console.log(`🔍 [HL] highlights estratti: ${highlights.length} → ${highlights.join(' | ')}`);
     return highlights.length > 0 ? highlights : ['📞 Chiamata ricevuta'];
   }
 
@@ -237,6 +244,9 @@ class RetellService {
     
     const data = {};
     const text = transcript.toLowerCase();
+    
+    console.log(`🔍 [SD] transcript length: ${transcript.length}`);
+    console.log(`🔍 [SD] transcript preview: ${transcript.substring(0, 200)}`);
     
     // Numero del chiamante
     if (fromNumber && fromNumber !== 'N/A') {
@@ -302,20 +312,30 @@ class RetellService {
       data.urgenza = 'Normale';
     }
     
-    // Date menzionate
+    // Date menzionate — numeriche e in parole italiane
     const dateRegex = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/g;
     const dates = transcript.match(dateRegex);
     if (dates) data.dateMenzionate = dates;
+    
+    // Date in parole italiane (es. "14 luglio 2026")
+    const mesiIt = 'gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre';
+    const dateParoleRegex = new RegExp(`(\\d{1,2})\\s+(${mesiIt})\\s+(\\d{4})`, 'gi');
+    const dateParole = transcript.match(dateParoleRegex);
+    if (dateParole) {
+      if (!data.dateMenzionate) data.dateMenzionate = [];
+      data.dateMenzionate.push(...dateParole);
+    }
     
     // Importi
     const amountRegex = /(?:euro|€|\$)\s*\d+(?:,\d{2})?|\d+(?:,\d{2})?\s*(?:euro|€|\$)/gi;
     const amounts = transcript.match(amountRegex);
     if (amounts) data.importi = amounts;
     
-    // Targa
-    const targaMatch = transcript.match(/\b[A-Z]{2}\d{3}[A-Z]{2}\b/);
-    if (targaMatch) data.targa = targaMatch[0];
+    // Targa — formato standard e con spazi (es. "GH 61 YW" → GH61YW) — case-insensitive
+    const targaMatch = transcript.match(/\b([A-Za-z]{2})\s*(\d{1,3})\s*([A-Za-z]{2})\b/);
+    if (targaMatch) data.targa = `${targaMatch[1].toUpperCase()}${targaMatch[2]}${targaMatch[3].toUpperCase()}`;
     
+    console.log(`🔍 [SD] dati estratti:`, JSON.stringify(data));
     return data;
   }
 
