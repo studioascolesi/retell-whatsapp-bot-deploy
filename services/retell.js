@@ -205,12 +205,12 @@ class RetellService {
       highlights.push('📞 Richiamare il cliente');
     }
     
-    // Numero pratica - solo da userText, solo numeri
-    const praticaMatch = userText.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\d+)/i);
+    // Numero pratica - solo da userText, richiede almeno una cifra
+    const praticaMatch = userText.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\d[\w\-\/]*\d|\d+)/i);
     if (praticaMatch) highlights.push(`📂 Pratica: ${praticaMatch[1]}`);
     
-    // Numero sinistro - solo da userText, solo numeri
-    const sinistroMatch = userText.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\d+)/i);
+    // Numero sinistro - solo da userText, richiede almeno una cifra
+    const sinistroMatch = userText.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\d[\w\-\/]*\d|\d+)/i);
     if (sinistroMatch) highlights.push(`🚨 Sinistro: ${sinistroMatch[1]}`);
     
     // Compagnia assicurativa - solo da userText
@@ -266,12 +266,12 @@ class RetellService {
     
     // ── DATI AGGIUNTIVI DAL PROMPT ──
     
-    // Numero pratica
-    const praticaMatch = transcript.match(/(?:pratica|numero pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]*)/i);
+    // Numero pratica — richiede almeno una cifra
+    const praticaMatch = transcript.match(/(?:pratica|numero\s*pratica|n[°.]*\s*pratica)\s*(?:n[°.]*\s*)?[:\s]*(\d[\w\-\/]*\d|\d+)/i);
     if (praticaMatch) data.numeroPratica = praticaMatch[1];
     
-    // Numero sinistro
-    const sinistroMatch = transcript.match(/(?:sinistro|numero sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\w[\w\-\/]*)/i);
+    // Numero sinistro — richiede almeno una cifra
+    const sinistroMatch = transcript.match(/(?:sinistro|numero\s*sinistro|n[°.]*\s*sinistro)\s*(?:n[°.]*\s*)?[:\s]*(\d[\w\-\/]*\d|\d+)/i);
     if (sinistroMatch) data.numeroSinistro = sinistroMatch[1];
     
     // Compagnia assicurativa
