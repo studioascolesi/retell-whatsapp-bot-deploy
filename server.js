@@ -169,11 +169,13 @@ app.post('/webhook/retell', async (req, res) => {
           (async () => {
             try {
               const message = formatter.formatCallReport(pending.callDetails);
+              console.log(`📱 Timeout fallback: messaggio pronto (${message.length}c), invio...`);
               const recipient = process.env.WHATSAPP_RECIPIENT;
               await whatsappService.sendMessage(recipient, message);
               console.log('✅ Messaggio WhatsApp inviato (fallback timeout)');
             } catch (err) {
               console.error('❌ Errore invio fallback:', err.message);
+              console.error('❌ Stack:', err.stack);
             }
           })();
         }
@@ -213,11 +215,13 @@ app.post('/webhook/retell', async (req, res) => {
         (async () => {
           try {
             const message = formatter.formatCallReport(pending.callDetails);
+            console.log(`📱 Messaggio pronto (${message.length}c), invio a ${process.env.WHATSAPP_RECIPIENT}...`);
             const recipient = process.env.WHATSAPP_RECIPIENT;
             await whatsappService.sendMessage(recipient, message);
             console.log('✅ Messaggio WhatsApp inviato con call_analysis!');
           } catch (err) {
             console.error('❌ Errore invio WhatsApp:', err.message);
+            console.error('❌ Stack:', err.stack);
           }
         })();
       } else {
