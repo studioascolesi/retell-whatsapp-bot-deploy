@@ -33,10 +33,11 @@ class MessageFormatter {
     }
     lines.push('');
     
-    // Retell AI summary (if available)
+    // Retell AI summary (translate English → Italian)
     if (callData.callSummary) {
+      const summaryIt = this._translateSummaryToItalian(callData.callSummary, callData);
       lines.push('📋 *Riepilogo chiamata:*');
-      lines.push(callData.callSummary);
+      lines.push(summaryIt);
       lines.push('');
     }
     
@@ -70,6 +71,56 @@ class MessageFormatter {
     lines.push('Tua Giulia 💬');
     
     return lines.join('\n');
+  }
+
+  /**
+   * Traduce il summary inglese di Retell AI in un riepilogo italiano conciso
+   */
+  _translateSummaryToItalian(englishSummary, callData) {
+    const text = (callData.transcript || '').toLowerCase();
+    const sd = callData.structuredData || {};
+    const highlights = callData.highlights || [];
+    const sentiment = callData.sentiment;
+    
+    // Costruisci riepilogo italiano dai dati estratti
+    const parts = [];
+    
+    // Chi ha chiamato
+    const nameH = highlights.find(h => h.startsWith('Nome:'));
+    if (nameH) {
+      parts.push(`Il chiamante è ${nameH.replace('Nome: ', '').trim()}.`);
+    }
+    
+    // Tipo richiesta
+    const richiesta = this._getRichiesta(text, callData);
+    if (richiesta) {
+      const cleanRichiesta = richiesta.replace(/^[\s\S]*?\s/, '');
+      parts.push(`Richiesta: ${cleanRichiesta}.`);
+    }
+    
+    // Dettagli chiave
+    if (sd.targa) parts.push(`Targa: ${sd.targa}.`);
+    if (sd.numeroPratica) parts.push(`Pratica n. ${sd.numeroPratica}.`);
+    if (sd.numeroSinistro) parts.push(`Sinistro n. ${sd.numeroSinistro}.`);
+    if (sd.compagniaAssicurativa) parts.push(`Compagnia: ${sd.compagniaAssicurativa}.`);
+    if (sd.avvocatoDiRiferimento) parts.push(`Avvocato: ${sd.avvocatoDiRiferimento}.`);
+    if (sd.tipoVeicolo) parts.push(`Veicolo: ${sd.tipoVeicolo}.`);
+    
+    // Sentiment tradotto
+    if (sentiment === 'Positive') parts.push('Il cliente si è mostrato collaborativo.');
+    else if (sentiment === 'Negative') parts.push('Il cliente sembra insoddisfatto.');
+    
+    if (parts.length > 0) {
+      return parts.join(' ');
+    }
+    
+    // Fallback: primo frammento utile dal transcript
+    const userText = this._getUserText(callData.transcriptObject);
+    if (userText && userText.length > 20) {
+      return userText.substring(0, 200).trim() + (userText.length > 200 ? '...' : '');
+    }
+    
+    return 'Chiamata ricevuta.';
   }
 
   /**
