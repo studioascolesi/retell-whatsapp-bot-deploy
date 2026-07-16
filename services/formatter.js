@@ -77,6 +77,11 @@ class MessageFormatter {
    * Traduce il summary inglese di Retell AI in un riepilogo italiano conciso
    */
   _translateSummaryToItalian(englishSummary, callData) {
+    // Se il summary è già in Italiano, usalo direttamente
+    if (englishSummary && this._isItalian(englishSummary)) {
+      return englishSummary;
+    }
+    
     const text = (callData.transcript || '').toLowerCase();
     const sd = callData.structuredData || {};
     const highlights = callData.highlights || [];
@@ -121,6 +126,14 @@ class MessageFormatter {
     }
     
     return 'Chiamata ricevuta.';
+  }
+
+  /**
+   * Controlla se un testo è in italiano
+   */
+  _isItalian(text) {
+    const italianWords = /\b(chiamata|chiamante|richiesta|sinistro|perizia|targa|veicolo|avvocato|studio|collega|compagnia|assicurativa|pratica|danno|incidente|assistenza|parlato|desidera|informazioni|aggiornamento|stato|giorno|data|numero|fornire|bisogno|provvedere)\b/i;
+    return italianWords.test(text);
   }
 
   /**
