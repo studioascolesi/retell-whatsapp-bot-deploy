@@ -149,6 +149,7 @@ app.post('/webhook/retell', async (req, res) => {
       console.log(`📞 Call ID: ${callId}`);
       console.log(`👤 Da: ${callData.from_number} → A: ${callData.to_number}`);
       console.log(`📝 Transcript: ${(callData.transcript||'').length}c | Segments: ${(callData.transcript_object||[]).length}`);
+      console.log(`⏱️  call_ended ricevuto alle: ${new Date().toISOString()}`);
 
       // Salva in cache per unire con call_analyzed
       const callDetails = retellService.parseWebhookData(callData);
@@ -186,6 +187,7 @@ app.post('/webhook/retell', async (req, res) => {
 
     if (event === 'call_analyzed') {
       console.log('📊 Chiamata analizzata (call_analyzed)');
+      console.log(`⏱️  call_analyzed ricevuto alle: ${new Date().toISOString()}`);
       
       res.status(200).json({ received: true });
       
@@ -215,10 +217,10 @@ app.post('/webhook/retell', async (req, res) => {
         (async () => {
           try {
             const message = formatter.formatCallReport(pending.callDetails);
-            console.log(`📱 Messaggio pronto (${message.length}c), invio a ${process.env.WHATSAPP_RECIPIENT}...`);
+            console.log(`📱 Messaggio pronto (${message.length}c), invio a ${process.env.WHATSAPP_RECIPIENT}... alle ${new Date().toISOString()}`);
             const recipient = process.env.WHATSAPP_RECIPIENT;
             await whatsappService.sendMessage(recipient, message);
-            console.log('✅ Messaggio WhatsApp inviato con call_analysis!');
+            console.log(`✅ Messaggio WhatsApp inviato con call_analysis! alle ${new Date().toISOString()}`);
           } catch (err) {
             console.error('❌ Errore invio WhatsApp:', err.message);
             console.error('❌ Stack:', err.stack);
