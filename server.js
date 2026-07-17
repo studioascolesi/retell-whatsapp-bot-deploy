@@ -39,6 +39,9 @@ app.get('/health', (req, res) => {
 app.get('/stato', (req, res) => {
   res.sendFile('stato.html', { root: 'public' });
 });
+app.get('/clienti', (req, res) => {
+  res.sendFile('clienti.html', { root: 'public' });
+});
 
 app.get('/status', (req, res) => {
   const waStatus = whatsappService.getQrCode();
@@ -196,17 +199,115 @@ app.post('/webhook/inbound', (req, res) => {
   }
 });
 
-// API per gestire clients.json
+// API CRUD per gestire clients.json
+function saveClients(clients) {
+  fs.writeFileSync(CLIENTS_PATH, JSON.stringify(clients, null, 2), 'utf8');
+}
+
+// LIST tutti i clienti
 app.get('/api/clients', (req, res) => {
   const clients = loadClients();
-  // Rimuovi la chiave _note
   const { _note, ...clean } = clients;
   res.json(clean);
 });
 
+// LOOKUP per telefono
 app.get('/api/clients/lookup/:phone', (req, res) => {
   const client = lookupClient(req.params.phone);
   res.json(client || { found: false });
+});
+
+// CREATE nuovo cliente
+app.post('/api/clients', (req, res) => {
+  try {
+    const { phone, nome, ruolo, targhe, pratiche, note } = req.body;
+    if (!phone || !nome) {
+      return res.status(400).json({ error: 'Telefono e nome sono obbligatori' });
+    }
+    const clients = loadClients();
+    const normalized = phone.replace(/[\s\-]/g, '');
+    if (clients[normalized]) {
+      return res.status(409).json({ error: 'Cliente già esistente per questo numero' });
+    }
+    clients[normalized] = {
+      nome,
+      ruolo: ruolo || 'cliente',
+      targhe: targhe || [],
+      pratiche: pratiche || [],
+      note: note || ''
+    };
+    saveClients(clients);
+    console.log(`➕ [API] Nuovo cliente: ${nome} (${normalized})`);
+    res.status(201).json({ success: true, phone: normalized });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// UPDATE cliente esistente
+app.put('/api/clients/:phone', (req, res) => {
+  try {
+    const originalPhone = decodeURIComponent(req.params.phone);
+    const { phone, nome, ruolo, targhe, pratiche, note } = req.body;
+    const clients = loadClients();
+    const normalizedOriginal = originalPhone.replace(/[\s\-]/g, '');
+    
+    if (!clients[normalizedOriginal]) {
+      return res.status(404).json({ error: 'Cliente non trovato' });
+    }
+    
+    // Se il telefono è cambiato, rimuovi il vecchio e crea il nuovo
+    if (phone && phone.replace(/[\s\-]/g, '') !== normalizedOriginal) {
+      const newNormalized = phone.replace(/[\s\-]/g, '');
+      if (clients[newNormalized]) {
+        return res.status(409).json({ error: 'Il nuovo numero è già in uso' });
+      }
+      clients[newNormalized] = {
+        nome: nome || clients[normalizedOriginal].nome,
+        ruolo: ruolo || clients[normalizedOriginal].ruolo,
+        targhe: targhe !== undefined ? targhe : clients[normalizedOriginal].targhe,
+        pratiche: pratiche !== undefined ? pratiche : clients[normalizedOriginal].pratiche,
+        note: note !== undefined ? note : clients[normalizedOriginal].note
+      };
+      delete clients[normalizedOriginal];
+      console.log(`✏️ [API] Cliente aggiornato: ${nome} (${normalizedOriginal} → ${newNormalized})`);
+    } else {
+      clients[normalizedOriginal] = {
+        nome: nome || clients[normalizedOriginal].nome,
+        ruolo: ruolo || clients[normalizedOriginal].ruolo,
+        targhe: targhe !== undefined ? targhe : clients[normalizedOriginal].targhe,
+        pratiche: pratiche !== undefined ? pratiche : clients[normalizedOriginal].pratiche,
+        note: note !== undefined ? note : clients[normalizedOriginal].note
+      };
+      console.log(`✏️ [API] Cliente aggiornato: ${nome} (${normalizedOriginal})`);
+    }
+    
+    saveClients(clients);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE cliente
+app.delete('/api/clients/:phone', (req, res) => {
+  try {
+    const phone = decodeURIComponent(req.params.phone);
+    const clients = loadClients();
+    const normalized = phone.replace(/[\s\-]/g, '');
+    
+    if (!clients[normalized]) {
+      return res.status(404).json({ error: 'Cliente non trovato' });
+    }
+    
+    const nome = clients[normalized].nome;
+    delete clients[normalized];
+    saveClients(clients);
+    console.log(`🗑️ [API] Cliente eliminato: ${nome} (${normalized})`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ============================================

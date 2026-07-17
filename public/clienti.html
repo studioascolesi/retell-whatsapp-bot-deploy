@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Ascolesi — Gestione Clienti</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #050506;
+            --bg: #0a0a0c;
+            --surface: rgba(255,255,255,0.025);
+            --surface-hover: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.05);
+            --border-subtle: rgba(255,255,255,0.03);
+            --gold: #c9a96e;
+            --gold-light: #dfc08a;
+            --gold-dim: rgba(201,169,110,0.12);
+            --gold-glow: rgba(201,169,110,0.06);
+            --green: #4ade80;
+            --green-dim: rgba(74,222,128,0.12);
+            --red: #f87171;
+            --red-dim: rgba(248,113,113,0.12);
+            --blue: #60a5fa;
+            --blue-dim: rgba(96,165,250,0.12);
+            --text: #e8e4dc;
+            --text-secondary: #7a756c;
+            --text-tertiary: #4a4640;
+            --serif: 'Cormorant Garamond', 'Georgia', serif;
+            --sans: 'DM Sans', -apple-system, sans-serif;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg-deep);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-font-smoothing: antialiased;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 30% 70%, rgba(201,169,110,0.03) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 70% 30%, rgba(201,169,110,0.02) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            opacity: 0.25;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+
+        .card {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 520px;
+            padding: 48px 40px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.02),
+                0 24px 80px rgba(0,0,0,0.5),
+                0 0 120px var(--gold-glow);
+            opacity: 0;
+            transform: translateY(20px) scale(0.98);
+            animation: card-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+        }
+
+        @keyframes card-in {
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .eyebrow {
+            font-family: var(--sans);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .eyebrow::before {
+            content: '';
+            width: 0;
+            height: 1px;
+            background: var(--gold);
+            opacity: 0.5;
+            animation: line-grow 0.6s ease-out 0.6s forwards;
+        }
+
+        @keyframes line-grow { to { width: 20px; } }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-family: var(--serif);
+            font-size: 32px;
+            font-weight: 300;
+            line-height: 1.15;
+        }
+
+        h1 em {
+            font-style: italic;
+            font-weight: 400;
+            color: var(--gold-light);
+        }
+
+        .btn-add {
+            background: var(--gold-dim);
+            color: var(--gold);
+            border: 1px solid rgba(201,169,110,0.2);
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-family: var(--sans);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-add:hover {
+            background: rgba(201,169,110,0.18);
+            border-color: rgba(201,169,110,0.3);
+        }
+
+        .client-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 24px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .client-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.015);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateX(-8px);
+            animation: row-in 0.5s ease-out forwards;
+        }
+
+        .client-row:nth-child(1) { animation-delay: 0.3s; }
+        .client-row:nth-child(2) { animation-delay: 0.4s; }
+        .client-row:nth-child(3) { animation-delay: 0.5s; }
+        .client-row:nth-child(4) { animation-delay: 0.6s; }
+        .client-row:nth-child(5) { animation-delay: 0.7s; }
+        .client-row:nth-child(6) { animation-delay: 0.8s; }
+
+        @keyframes row-in {
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .client-row:hover {
+            background: rgba(255,255,255,0.03);
+            border-color: rgba(255,255,255,0.06);
+        }
+
+        .client-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .client-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .client-phone {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .client-meta {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .tag {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .tag-role {
+            background: var(--gold-dim);
+            color: var(--gold);
+        }
+
+        .tag-role.avvocato {
+            background: var(--blue-dim);
+            color: var(--blue);
+        }
+
+        .tag-targhe {
+            background: rgba(255,255,255,0.04);
+            color: var(--text-secondary);
+        }
+
+        .client-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 12px;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-icon.delete:hover {
+            background: var(--red-dim);
+            border-color: rgba(248,113,113,0.2);
+            color: var(--red);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin-bottom: 24px;
+        }
+
+        .footer-link {
+            margin-top: 28px;
+            text-align: center;
+        }
+
+        .footer-link a {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            text-decoration: none;
+            letter-spacing: 0.06em;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link a:hover {
+            color: var(--gold);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            width: 90%;
+            max-width: 440px;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal h2 {
+            font-family: var(--serif);
+            font-size: 24px;
+            font-weight: 300;
+            margin-bottom: 28px;
+            color: var(--text);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-family: var(--sans);
+            font-size: 14px;
+            color: var(--text);
+            transition: border-color 0.3s ease;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: rgba(201,169,110,0.3);
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .form-group select {
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%234a4640' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+        }
+
+        .form-group select option {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: var(--sans);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+
+        .btn-cancel:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .btn-save {
+            background: var(--gold-dim);
+            color: var(--gold);
+            border-color: rgba(201,169,110,0.2);
+        }
+
+        .btn-save:hover {
+            background: rgba(201,169,110,0.18);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 13px;
+            color: var(--text);
+            opacity: 0;
+            transition: all 0.4s ease;
+            z-index: 200;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success { border-color: rgba(74,222,128,0.3); color: var(--green); }
+        .toast.error { border-color: rgba(248,113,113,0.3); color: var(--red); }
+
+        @media (max-width: 480px) {
+            .card { margin: 20px; padding: 36px 28px; }
+            h1 { font-size: 26px; }
+            .header { flex-direction: column; gap: 16px; }
+            .btn-add { width: 100%; text-align: center; }
+            .form-row { flex-direction: column; gap: 0; }
+            .modal { padding: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="eyebrow">Gestione Clienti</div>
+        <div class="header">
+            <h1>I tuoi <em>clienti.</em></h1>
+            <button class="btn-add" onclick="openModal()">+ Nuovo</button>
+        </div>
+
+        <div class="client-list" id="client-list">
+            <div class="empty-state">Caricamento...</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="footer-link">
+            <a href="/stato">← Torna allo stato</a>
+        </div>
+    </div>
+
+    <!-- Modal Crea/Modifica -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">Nuovo Cliente</h2>
+            <form id="client-form" onsubmit="saveClient(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="f-phone">Telefono</label>
+                        <input type="text" id="f-phone" placeholder="+39 333 123 4567" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="f-ruolo">Ruolo</label>
+                        <select id="f-ruolo">
+                            <option value="cliente">Cliente</option>
+                            <option value="avvocato">Avvocato</option>
+                            <option value="proprietario">Proprietario</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="f-nome">Nome e Cognome</label>
+                    <input type="text" id="f-nome" placeholder="Mario Rossi" required>
+                </div>
+                <div class="form-group">
+                    <label for="f-targhe">Targhe (una per riga)</label>
+                    <textarea id="f-targhe" placeholder="AB123CD&#10;EF456GH"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="f-pratiche">Pratiche (una per riga)</label>
+                    <textarea id="f-pratiche" placeholder="PRAT-2024-001&#10;PRAT-2024-002"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="f-note">Note</label>
+                    <textarea id="f-note" placeholder="Note aggiuntive..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal()">Annulla</button>
+                    <button type="submit" class="btn btn-save" id="btn-save">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let clients = {};
+        let editingPhone = null;
+
+        async function loadClients() {
+            try {
+                const res = await fetch('/api/clients');
+                clients = await res.json();
+                renderList();
+            } catch (err) {
+                document.getElementById('client-list').innerHTML =
+                    '<div class="empty-state">Errore nel caricamento</div>';
+            }
+        }
+
+        function renderList() {
+            const list = document.getElementById('client-list');
+            const entries = Object.entries(clients);
+
+            if (entries.length === 0) {
+                list.innerHTML = '<div class="empty-state">Nessun cliente configurato.<br>Clicca "+ Nuovo" per aggiungerne uno.</div>';
+                return;
+            }
+
+            list.innerHTML = entries.map(([phone, c], i) => {
+                const roleClass = c.ruolo === 'avvocato' ? 'avvocato' : '';
+                const targa = Array.isArray(c.targhe) ? c.targhe.filter(t => t !== 'non fornite') : [];
+                const pratica = Array.isArray(c.pratiche) ? c.pratiche.filter(p => p !== 'non fornite') : [];
+                return `
+                    <div class="client-row" style="animation-delay: ${0.3 + i * 0.1}s">
+                        <div class="client-info">
+                            <div class="client-name">${esc(c.nome)}</div>
+                            <div class="client-phone">${esc(phone)}</div>
+                        </div>
+                        <div class="client-meta">
+                            <span class="tag tag-role ${roleClass}">${esc(c.ruolo || 'cliente')}</span>
+                            ${targa.length ? `<span class="tag tag-targhe">${targa.length} targa${targa.length > 1 ? 'e' : ''}</span>` : ''}
+                            ${pratica.length ? `<span class="tag tag-targhe">${pratica.length} pratica${pratica.length > 1 ? 'e' : ''}</span>` : ''}
+                        </div>
+                        <div class="client-actions">
+                            <button class="btn-icon" onclick="editClient('${esc(phone)}')" title="Modifica">✎</button>
+                            <button class="btn-icon delete" onclick="deleteClient('${esc(phone)}', '${esc(c.nome)}')" title="Elimina">✕</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openModal(phone) {
+            editingPhone = phone || null;
+            const modal = document.getElementById('modal-overlay');
+            const title = document.getElementById('modal-title');
+            const form = document.getElementById('client-form');
+
+            form.reset();
+            document.getElementById('f-phone').disabled = false;
+
+            if (editingPhone && clients[editingPhone]) {
+                title.textContent = 'Modifica Cliente';
+                const c = clients[editingPhone];
+                document.getElementById('f-phone').value = editingPhone;
+                document.getElementById('f-phone').disabled = true;
+                document.getElementById('f-nome').value = c.nome;
+                document.getElementById('f-ruolo').value = c.ruolo || 'cliente';
+                const targe = Array.isArray(c.targhe) ? c.targhe.filter(t => t !== 'non fornite').join('\n') : '';
+                document.getElementById('f-targhe').value = targe;
+                const prat = Array.isArray(c.pratiche) ? c.pratiche.filter(p => p !== 'non fornite').join('\n') : '';
+                document.getElementById('f-pratiche').value = prat;
+                document.getElementById('f-note').value = c.note || '';
+            } else {
+                title.textContent = 'Nuovo Cliente';
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+            editingPhone = null;
+        }
+
+        function editClient(phone) {
+            openModal(phone);
+        }
+
+        async function saveClient(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save');
+            btn.disabled = true;
+
+            const phone = document.getElementById('f-phone').value.trim();
+            const nome = document.getElementById('f-nome').value.trim();
+            const ruolo = document.getElementById('f-ruolo').value;
+            const targheRaw = document.getElementById('f-targhe').value.trim();
+            const praticheRaw = document.getElementById('f-pratiche').value.trim();
+            const note = document.getElementById('f-note').value.trim();
+
+            const targhe = targheRaw ? targheRaw.split('\n').map(s => s.trim()).filter(Boolean) : [];
+            const pratiche = praticheRaw ? praticheRaw.split('\n').map(s => s.trim()).filter(Boolean) : [];
+
+            const body = { phone, nome, ruolo, targhe, pratiche, note };
+
+            try {
+                let res;
+                if (editingPhone) {
+                    res = await fetch(`/api/clients/${encodeURIComponent(editingPhone)}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                } else {
+                    res = await fetch('/api/clients', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                }
+
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(editingPhone ? 'Cliente aggiornato' : 'Cliente aggiunto', 'success');
+                    closeModal();
+                    await loadClients();
+                } else {
+                    showToast(data.error || 'Errore', 'error');
+                }
+            } catch (err) {
+                showToast('Errore di connessione', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteClient(phone, nome) {
+            if (!confirm(`Eliminare ${nome}?`)) return;
+
+            try {
+                const res = await fetch(`/api/clients/${encodeURIComponent(phone)}`, {
+                    method: 'DELETE'
+                });
+                if (res.ok) {
+                    showToast(`${nome} eliminato`, 'success');
+                    await loadClients();
+                } else {
+                    const data = await res.json();
+                    showToast(data.error || 'Errore', 'error');
+                }
+            } catch (err) {
+                showToast('Errore di connessione', 'error');
+            }
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => { toast.className = 'toast'; }, 2500);
+        }
+
+        function esc(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        // Close modal on overlay click
+        document.getElementById('modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Close modal on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        loadClients();
+    </script>
+</body>
+</html>
