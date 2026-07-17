@@ -622,7 +622,6 @@
                 title.textContent = 'Modifica Cliente';
                 const c = clients[editingPhone];
                 document.getElementById('f-phone').value = editingPhone;
-                document.getElementById('f-phone').disabled = true;
                 document.getElementById('f-nome').value = c.nome;
                 document.getElementById('f-ruolo').value = c.ruolo || 'cliente';
                 const targe = Array.isArray(c.targhe) ? c.targhe.filter(t => t !== 'non fornite').join('\n') : '';
