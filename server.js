@@ -148,12 +148,29 @@ function lookupClient(phoneNumber) {
 }
 
 // ============================================
+// LOG BUFFER per diagnosticare inbound webhook
+// ============================================
+const inboundLog = [];
+const MAX_LOG = 50;
+
+function logInbound(entry) {
+  inboundLog.push(entry);
+  if (inboundLog.length > MAX_LOG) inboundLog.shift();
+}
+
+// Endpoint diagnostico per vedere gli ultimi inbound
+app.get('/debug/inbound', (req, res) => {
+  res.json({ count: inboundLog.length, entries: inboundLog });
+});
+
+// ============================================
 // WEBHOOK INBOUND RETELL
 // Riceve chiamate in entrata PRIMA che Giulia risponda
 // ============================================
 app.post('/webhook/inbound', (req, res) => {
   try {
     const { from_number, to_number, agent_id } = req.body;
+    const ts = new Date().toISOString();
     console.log(`📞 [INBOUND] === RICHIESTA INBOUND RICEVUTA ===`);
     console.log(`📞 [INBOUND] from: ${from_number} → to: ${to_number} | agent: ${agent_id}`);
     console.log(`📞 [INBOUND] Body completo:`, JSON.stringify(req.body));
@@ -181,7 +198,7 @@ app.post('/webhook/inbound', (req, res) => {
         beginMsg = `Salve ${client.nome}, sono Giulia, assistente dello Studio Ascolesi. Come posso aiutarla?`;
       }
       
-      res.status(200).json({
+      const responsePayload = {
         call_inbound: {
           dynamic_variables: dynamicVars,
           agent_override: {
@@ -190,11 +207,13 @@ app.post('/webhook/inbound', (req, res) => {
             }
           }
         }
-      });
+      };
+      logInbound({ ts, from: from_number, to: to_number, found: true, client: client.nome, response: responsePayload });
+      res.status(200).json(responsePayload);
     } else {
       console.log(`ℹ️  [INBOUND] Cliente non trovato per ${from_number} — saluto standard`);
       
-      res.status(200).json({
+      const responsePayload = {
         call_inbound: {
           dynamic_variables: {
             client_name: '',
@@ -204,10 +223,13 @@ app.post('/webhook/inbound', (req, res) => {
             client_note: '',
           }
         }
-      });
+      };
+      logInbound({ ts, from: from_number, to: to_number, found: false, response: responsePayload });
+      res.status(200).json(responsePayload);
     }
   } catch (error) {
     console.error('❌ [INBOUND] Errore:', error.message);
+    logInbound({ ts: new Date().toISOString(), error: error.message });
     res.status(200).json({ call_inbound: {} }); // Fall back gracefully
   }
 });
