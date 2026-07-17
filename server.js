@@ -151,11 +151,11 @@ function lookupClient(phoneNumber) {
 // LOG BUFFER per diagnosticare inbound webhook
 // ============================================
 const inboundLog = [];
-const MAX_LOG = 50;
+const MAX_INBOUND_LOG = 50;
 
 function logInbound(entry) {
   inboundLog.push(entry);
-  if (inboundLog.length > MAX_LOG) inboundLog.shift();
+  if (inboundLog.length > MAX_INBOUND_LOG) inboundLog.shift();
 }
 
 // Endpoint diagnostico per vedere gli ultimi inbound
