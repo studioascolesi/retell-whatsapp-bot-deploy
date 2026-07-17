@@ -73,10 +73,12 @@ class WhatsAppService {
           this.isReady = false;
           
           if (shouldReconnect) {
-            console.log('🔄 Riconnessione tra 3 secondi...');
-            setTimeout(() => this._init(), 3000);
+            // Se è un replace (deploy), riconnetti subito
+            const delay = statusCode === DisconnectReason.connectionReplaced ? 1000 : 3000;
+            console.log(`🔄 Riconnessione tra ${delay/1000} secondi...`);
+            setTimeout(() => this._init(), delay);
           } else {
-            console.log('❌ Disconnesso definitivamente. Riscansiona il QR.');
+            console.log('❌ Disconnesso definitivamente (loggedOut). Serve nuovo QR.');
             this.currentQr = null;
           }
         }

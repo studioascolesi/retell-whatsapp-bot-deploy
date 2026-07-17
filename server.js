@@ -419,6 +419,86 @@ app.post('/webhook/retell', async (req, res) => {
         console.log(`💬 Sentiment: ${callAnalysis.user_sentiment}`);
         console.log(`✅ Successful: ${callAnalysis.call_successful}`);
       }
+
+      // === AUTO-SALVA CLIENTE ===
+      // Se il chiamante non è in clients.json, prova a salvarlo automaticamente
+      try {
+        const callerPhone = callData.from_number;
+        if (callerPhone && callerPhone !== 'N/A') {
+          const clients = loadClients();
+          const normalized = callerPhone.replace(/[\s\-]/g, '');
+          
+          if (!clients[normalized]) {
+            console.log(`🆕 [AUTO] Numero nuovo rilevato: ${normalized} — tentativo auto-salvataggio...`);
+            
+            // Prova a estrarre info dalla call_analysis
+            const customData = callAnalysis?.custom_analysis_data || {};
+            const structured = callData.structured_data || {};
+            const transcript = callData.transcript || '';
+            
+            // Estrai nome dal custom_analysis_data (se Giulia lo ha estratto)
+            let nome = customData.cliente_nome || customData.nome_cliente || customData.client_name || '';
+            
+            // Se non trovato nel custom data, prova dal transcript
+            if (!nome) {
+              // Cerca pattern: "cliente si chiama X", "sono X", "mi chiamo X"
+              const namePatterns = [
+                /(?: cliente si chiama| sono| mi chiamo| parlo con| speaking with| this is)\s+([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,2})/i,
+                /(?:nome|name)\s+(?:è|is|:)?\s*([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,2})/i
+              ];
+              for (const pat of namePatterns) {
+                const match = transcript.match(pat);
+                if (match) { nome = match[1].trim(); break; }
+              }
+            }
+            
+            // Estrai ruolo
+            let ruolo = 'cliente';
+            const lowerTranscript = transcript.toLowerCase();
+            if (lowerTranscript.includes('avvocat') || lowerTranscript.includes('studio legale') || lowerTranscript.includes('foro')) {
+              ruolo = 'avvocato';
+            }
+            
+            // Estrai targhe
+            let targhe = [];
+            if (structured.targa) {
+              targhe = Array.isArray(structured.targa) ? structured.targa : [structured.targa];
+            } else {
+              // Pattern targa italiana nel transcript
+              const targaPattern = /\b([A-Z]{2})\s*(\d{1,3})\s*([A-Z]{2})\b/gi;
+              let tMatch;
+              while ((tMatch = targaPattern.exec(transcript)) !== null) {
+                targhe.push(`${tMatch[1].toUpperCase()}${tMatch[2]}${tMatch[3].toUpperCase()}`);
+              }
+            }
+            
+            // Estrai pratiche
+            let pratiche = [];
+            if (structured.pratica) {
+              pratiche = Array.isArray(structured.pratica) ? structured.pratica : [structured.pratica];
+            }
+            
+            if (nome || targhe.length > 0 || pratiche.length > 0) {
+              clients[normalized] = {
+                nome: nome || `Cliente ${normalized.slice(-4)}`,
+                ruolo,
+                targhe: targhe.length > 0 ? targhe : [],
+                pratiche: pratiche.length > 0 ? pratiche : [],
+                note: `Auto-creato da chiamata del ${new Date().toLocaleDateString('it-IT')}`
+              };
+              saveClients(clients);
+              console.log(`✅ [AUTO] Cliente salvato: ${clients[normalized].nome} (${normalized}) — ruolo: ${ruolo}, targhe: ${targhe.join(', ')}, pratiche: ${pratiche.join(', ')}`);
+            } else {
+              console.log(`ℹ️  [AUTO] Dati insufficienti per auto-salvataggio (${normalized}) — nessun nome/targa/pratica estratto`);
+            }
+          } else {
+            console.log(`ℹ️  [AUTO] Cliente già conosciuto: ${clients[normalized].nome} (${normalized})`);
+          }
+        }
+      } catch (autoErr) {
+        console.error('⚠️  [AUTO] Errore auto-salvataggio cliente:', autoErr.message);
+      }
+      // === FINE AUTO-SALVA CLIENTE ===
       
       // Recupera dati dalla cache e unisci con call_analysis
       const pending = pendingCalls.get(callId);
