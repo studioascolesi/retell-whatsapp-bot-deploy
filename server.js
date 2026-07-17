@@ -91,6 +91,125 @@ app.get('/qr', async (req, res) => {
 });
 
 // ============================================
+// CLIENT DATABASE
+// Lookup clienti per telefono
+// ============================================
+const fs = require('fs');
+const CLIENTS_PATH = path.join(__dirname, 'clients.json');
+
+function loadClients() {
+  try {
+    const raw = fs.readFileSync(CLIENTS_PATH, 'utf8');
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('⚠️  clients.json non trovato o illeggibile:', e.message);
+    return {};
+  }
+}
+
+function lookupClient(phoneNumber) {
+  if (!phoneNumber) return null;
+  const clients = loadClients();
+  // Normalizza: rimuovi + e spazi, prova vari formati
+  const normalized = phoneNumber.replace(/[\s\-]/g, '');
+  const variants = [
+    normalized,
+    normalized.replace(/^\+/, ''),
+    normalized.replace(/^39/, '+39'),
+    '+39' + normalized.replace(/^\+?39/, ''),
+    normalized.replace(/^0039/, '+39'),
+  ];
+  for (const v of variants) {
+    if (clients[v]) return clients[v];
+  }
+  // Cerca anche chiavi che terminano con gli ultimi 8-10 cifre
+  const digits = normalized.replace(/\D/g, '');
+  for (const [key, client] of Object.entries(clients)) {
+    const keyDigits = key.replace(/\D/g, '');
+    if (keyDigits.length >= 8 && digits.endsWith(keyDigits.slice(-8))) {
+      return client;
+    }
+  }
+  return null;
+}
+
+// ============================================
+// WEBHOOK INBOUND RETELL
+// Riceve chiamate in entrata PRIMA che Giulia risponda
+// ============================================
+app.post('/webhook/inbound', (req, res) => {
+  try {
+    const { from_number, to_number, agent_id } = req.body;
+    console.log(`📞 [INBOUND] Chiamata da: ${from_number} → ${to_number}`);
+    
+    const client = lookupClient(from_number);
+    
+    if (client) {
+      console.log(`✅ [INBOUND] Cliente trovato: ${client.nome} (${client.ruolo})`);
+      
+      const dynamicVars = {
+        client_name: client.nome,
+        client_role: client.ruolo || 'cliente',
+        client_targhe: (client.targhe || []).join(', ') || 'non fornite',
+        client_pratiche: (client.pratiche || []).join(', ') || 'nessuna',
+        client_note: client.note || '',
+      };
+      
+      // Costruisci begin_message personalizzato
+      let beginMsg;
+      if (client.ruolo === 'avvocato') {
+        beginMsg = `Salve Avvocato ${client.nome}, sono Giulia, assistente dello Studio Ascolesi. Come posso aiutarla?`;
+      } else if (client.ruolo === 'proprietario') {
+        beginMsg = `Ciao Massimo, sono Giulia. Come posso aiutarti?`;
+      } else {
+        beginMsg = `Salve ${client.nome}, sono Giulia, assistente dello Studio Ascolesi. Come posso aiutarla?`;
+      }
+      
+      res.status(200).json({
+        call_inbound: {
+          dynamic_variables: dynamicVars,
+          agent_override: {
+            retell_llm: {
+              begin_message: beginMsg,
+            }
+          }
+        }
+      });
+    } else {
+      console.log(`ℹ️  [INBOUND] Cliente non trovato per ${from_number} — saluto standard`);
+      
+      res.status(200).json({
+        call_inbound: {
+          dynamic_variables: {
+            client_name: '',
+            client_role: '',
+            client_targhe: '',
+            client_pratiche: '',
+            client_note: '',
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error('❌ [INBOUND] Errore:', error.message);
+    res.status(200).json({ call_inbound: {} }); // Fall back gracefully
+  }
+});
+
+// API per gestire clients.json
+app.get('/api/clients', (req, res) => {
+  const clients = loadClients();
+  // Rimuovi la chiave _note
+  const { _note, ...clean } = clients;
+  res.json(clean);
+});
+
+app.get('/api/clients/lookup/:phone', (req, res) => {
+  const client = lookupClient(req.params.phone);
+  res.json(client || { found: false });
+});
+
+// ============================================
 // WEBHOOK RETELL AI
 // Riceve notifiche quando una chiamata termina
 // ============================================
