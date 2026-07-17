@@ -1,27 +1,34 @@
 {
   "_note": "Database clienti Studio Ascolesi. Chiave: numero telefono in formato internazionale. Aggiornare manualmente.",
-  "393317150949": {
+  "393393264860": {
     "nome": "Massimo Ascolesi",
     "ruolo": "proprietario",
     "targhe": [],
     "pratiche": [],
     "note": "Proprietario dello studio"
   },
-  "+393331234567": {
+  "393317150949": {
+    "nome": "Ciro Minopoli",
+    "ruolo": "cliente",
+    "targhe": [],
+    "pratiche": [],
+    "note": ""
+  },
+  "393331234567": {
     "nome": "Mario Rossi",
     "ruolo": "cliente",
     "targhe": ["AB123CD"],
     "pratiche": ["PRAT-2024-001"],
     "note": "Sinistro auto luglio 2024"
   },
-  "+393409876543": {
+  "393409876543": {
     "nome": "Giuseppe Verdi",
     "ruolo": "cliente",
     "targhe": ["EF456GH"],
     "pratiche": ["PRAT-2024-045"],
     "note": "Richiesta perizia sopralluogo"
   },
-  "+393201112223": {
+  "393201112223": {
     "nome": "Cardelli Mauro",
     "ruolo": "avvocato",
     "targhe": [],

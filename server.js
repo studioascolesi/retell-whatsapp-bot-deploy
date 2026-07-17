@@ -98,7 +98,18 @@ app.get('/qr', async (req, res) => {
 // Lookup clienti per telefono
 // ============================================
 const fs = require('fs');
-const CLIENTS_PATH = path.join(__dirname, 'clients.json');
+const CLIENTS_PATH = fs.existsSync('/data')
+  ? path.join('/data', 'clients.json')
+  : path.join(__dirname, 'clients.json');
+
+// Seed clients.json nel Volume se non esiste ancora
+if (fs.existsSync('/data') && !fs.existsSync(CLIENTS_PATH)) {
+  const seedPath = path.join(__dirname, 'clients.json');
+  if (fs.existsSync(seedPath)) {
+    fs.copyFileSync(seedPath, CLIENTS_PATH);
+    console.log(`🌱 [CLIENTS] Seed clients.json nel Volume da cartella app`);
+  }
+}
 
 function loadClients() {
   try {
@@ -143,12 +154,14 @@ function lookupClient(phoneNumber) {
 app.post('/webhook/inbound', (req, res) => {
   try {
     const { from_number, to_number, agent_id } = req.body;
-    console.log(`📞 [INBOUND] Chiamata da: ${from_number} → ${to_number}`);
+    console.log(`📞 [INBOUND] === RICHIESTA INBOUND RICEVUTA ===`);
+    console.log(`📞 [INBOUND] from: ${from_number} → to: ${to_number} | agent: ${agent_id}`);
+    console.log(`📞 [INBOUND] Body completo:`, JSON.stringify(req.body));
     
     const client = lookupClient(from_number);
     
     if (client) {
-      console.log(`✅ [INBOUND] Cliente trovato: ${client.nome} (${client.ruolo})`);
+      console.log(`✅ [INBOUND] ✅ CLIENTE TROVATO: ${client.nome} (${client.ruolo}) — phone: ${from_number}`);
       
       const dynamicVars = {
         client_name: client.nome,
@@ -439,16 +452,20 @@ app.post('/webhook/retell', async (req, res) => {
             // Estrai nome dal custom_analysis_data (se Giulia lo ha estratto)
             let nome = customData.cliente_nome || customData.nome_cliente || customData.client_name || '';
             
-            // Se non trovato nel custom data, prova dal transcript
+            // Se non trovato nel custom data, prova dal transcript SOLO se il cliente ha effettivamente parlato
             if (!nome) {
-              // Cerca pattern: "cliente si chiama X", "sono X", "mi chiamo X"
-              const namePatterns = [
-                /(?: cliente si chiama| sono| mi chiamo| parlo con| speaking with| this is)\s+([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,2})/i,
-                /(?:nome|name)\s+(?:è|is|:)?\s*([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,2})/i
-              ];
-              for (const pat of namePatterns) {
-                const match = transcript.match(pat);
-                if (match) { nome = match[1].trim(); break; }
+              // Prima verifica che il cliente abbia parlato (almeno 2 segmenti utente)
+              const userSegments = (transcriptObject || []).filter(s => s.role !== 'agent');
+              if (userSegments.length >= 2) {
+                // Cerca pattern: "cliente si chiama X", "sono X", "mi chiamo X"
+                const namePatterns = [
+                  /(?: cliente si chiama| sono| mi chiamo| parlo con| speaking with| this is)\s+([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,2})/i,
+                  /(?:nome|name)\s+(?:è|is|:)?\s*([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+){0,2})/i
+                ];
+                for (const pat of namePatterns) {
+                  const match = transcript.match(pat);
+                  if (match) { nome = match[1].trim(); break; }
+                }
               }
             }
             
@@ -478,7 +495,11 @@ app.post('/webhook/retell', async (req, res) => {
               pratiche = Array.isArray(structured.pratica) ? structured.pratica : [structured.pratica];
             }
             
-            if (nome || targhe.length > 0 || pratiche.length > 0) {
+            // Salva SOLO se il chiamante ha parlato E abbiamo dati utili
+            const userSegments = (transcriptObject || []).filter(s => s.role !== 'agent');
+            const haParlato = userSegments.length >= 2; // almeno 2 interventi del cliente
+            
+            if (haParlato && (nome || targhe.length > 0 || pratiche.length > 0)) {
               clients[normalized] = {
                 nome: nome || `Cliente ${normalized.slice(-4)}`,
                 ruolo,
@@ -488,6 +509,8 @@ app.post('/webhook/retell', async (req, res) => {
               };
               saveClients(clients);
               console.log(`✅ [AUTO] Cliente salvato: ${clients[normalized].nome} (${normalized}) — ruolo: ${ruolo}, targhe: ${targhe.join(', ')}, pratiche: ${pratiche.join(', ')}`);
+            } else if (!haParlato) {
+              console.log(`ℹ️  [AUTO] Chiamante non ha parlato (${normalized}) — nessun salvataggio`);
             } else {
               console.log(`ℹ️  [AUTO] Dati insufficienti per auto-salvataggio (${normalized}) — nessun nome/targa/pratica estratto`);
             }
